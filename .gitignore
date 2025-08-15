@@ -1,0 +1,7 @@
+# exclude all dot files except .gitignore
+.*
+!.gitignore
+
+*.bak
+*.exe
+*.ini
