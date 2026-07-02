@@ -1,5 +1,5 @@
 -- plays player footstep sounds - oleh5230, 17.08.25
--- Last edit: 09.10.25
+-- Last edit: 12.05.25
 
 local debug = false
 
@@ -7,29 +7,21 @@ local step_enabled = true
 local step_volume = 0.5
 local gear_enabled = true
 local gear_volume = 0.5
-
--- gear rustle parameters per outfit class
--- [<outfit_class>] = {<directory_path>, <sample_number>, <directory_path2>, <sample_number2>, ... }
-gear_rustle = {
-    ["default"]             = {"cloth\\cloth_", 38},
-
-    ["outfit_novice"]       = {"gear-rustle\\tac_gear_", 81, "cloth\\cloth_", 38},
-    ["outfit_light"]        = {"gear-rustle\\tac_gear_", 81, "cloth\\cloth_", 38},
-    ["outfit_medium"]       = {"gear-rustle\\tac_gear_", 81, "cloth\\cloth_", 38},
-    ["outfit_heavy"]        = {"gear-rustle\\tac_gear_", 81, "cloth\\cloth_", 38},
-
-    ["outfit_exo_proto"]    = {"gear-rustle\\tac_gear_", 81, "cloth\\cloth_", 38}, -- "exo-gear-light\\light_sero_", 20
-    ["outfit_exo"]          = {"gear-rustle\\tac_gear_", 81, "cloth\\cloth_", 38}, --, "exo-gear-light\\light_sero_", 20
-    ["outfit_exo_nosorog"]  = {"gear-rustle\\tac_gear_", 81, "cloth\\cloth_", 38}, --, "exo-gear-heavy\\heavy_servo_", 20
-}
-
 local servo_volume = 0.5
 local servo_enabled = true
-local exo_count = true
-local exo_classes = {
-    ["outfit_exo_proto"]    = "light_",
-    ["outfit_exo"]          = "medium_",
-    ["outfit_exo_nosorog"]  = "medium_",
+
+-- extra sounds per outfit class
+extra_sounds = {
+    ["default"]             = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"},
+
+    ["outfit_novice"]       = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"},
+    ["outfit_light"]        = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"},
+    ["outfit_medium"]       = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"},
+    ["outfit_heavy"]        = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"},
+
+    ["outfit_exo_proto"]    = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"}, -- "exo-gear-light\\light_sero_", 20
+    ["outfit_exo"]          = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"}, --, "exo-gear-light\\light_sero_", 20
+    ["outfit_exo_nosorog"]  = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"}, --, "exo-gear-heavy\\heavy_servo_", 20
 }
 
 -- number of footstep sound files (samples) per move state
@@ -43,6 +35,9 @@ limit = {
     ["wood_hand-0"] = 6,
     ["wood_foot-0"] = 6,
     ["n_"] = 6,
+
+    ["cloth\\cloth_"] = 6,
+    ["gear_rattle\\gear_rattle_"] = 6,
 }
 
 count = {
@@ -55,6 +50,9 @@ count = {
     ["wood_hand-0"] = 1,
     ["wood_foot-0"] = 1,
     ["n_"] = 1,
+
+    ["cloth\\cloth_"] = 1,
+    ["gear_rattle\\gear_rattle_"] = 1,
 }
 
 -- create sample queues to mitigate the issue of same sample playing multiple time in a row
@@ -68,6 +66,9 @@ queues = {
     ["wood_hand-0"] = {},
     ["wood_foot-0"] = {},
     ["n_"] = {},
+
+    ["cloth\\cloth_"] = {},
+    ["gear_rattle\\gear_rattle_"] = {},
 }
 for k,v in pairs(queues) do
     for i=1, limit[k] do
@@ -79,64 +80,96 @@ end
 function actor_on_footstep(material, power, hud_view, flags)
     --flags.ret_value = false -- uncomment to disable engine footstep sounds
     if not step_enabled then return end
-    local outfit_class = oleh_sound_utils.get_outfit_class()
-
+    local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
     local move_state, volume = "n_", 1
     move_state, volume = get_move_state()
-    -- for k,v in pairs(queues) do
-    --     local str = k
-    --     for a,b in ipairs(queues[k]) do
-    --         str = str .. b
-    --     end
-    --     print_dbg("%s", str)
-    -- end
     material = available_materials[material] or available_materials["default"]
 
-    -- play gear rustle sounds
-    if gear_enabled then
-        for i = 1, 10, 2 do
-            local directory = gear_rustle[outfit_class][i]
-            local limit = gear_rustle[outfit_class][i + 1]
-            if directory and limit then
-                local sound = sound_object(directory .. math.random(limit))
-                sound:play(db.actor, 0, sound_object.s2d)
-                sound.volume = volume * gear_volume * 0.5
-                print_dbg("%s, %s, %s", outfit_class, directory, limit)
-            else
-                break
-            end
-        end
-    end
+    play_cloth_sound(outfit, volume)
+    play_gear_rattle(outfit, volume)
+    play_backpack_rattle(outfit, volume)
+    play_exo_servo_sound(outfit, volume)
 
-    -- play exo servo sounds
-    if servo_enabled and exo_classes[outfit_class] then
-        local sound = sound_object("exo-gear-walk-jump-land\\servo_exo_walk_" .. exo_classes[outfit_class] .. (exo_count and 2 or 1))
-        sound:play(db.actor, 0, sound_object.s2d)
-        sound.volume = volume * servo_volume
-        exo_count = not exo_count
-    end
-
-    if IsMoveState('mcClimb') and play_ladder_sound(material, volume) then
+    if move_state == "climb_" and play_ladder_sound(material, volume) then
     -- callback can't catch water_radiation material, leave water steps to engine
     elseif material ~= "water_" then
-        count[move_state] = count[move_state] + 1
-        if count[move_state] > limit[move_state] then
-            count[move_state] = 1
-            shuffle_table(queues[move_state])
+        count["n_"] = count["n_"] + 1
+        if count["n_"] > limit["n_"] then
+            count["n_"] = 1
+            shuffle_table(queues["n_"])
         end
 
-        local sound = sound_object("footstep\\" .. move_state .. material .. queues[move_state][count[move_state]])
-        print_dbg("footstep_sounds: %s, power: %s, volume: %s", "footstep\\" .. move_state .. material .. queues[move_state][count[move_state]], power, volume * step_volume)
+        local sound = sound_object("footstep\\" .. "n_" .. material .. queues["n_"][count["n_"]])
+        print_dbg("footstep_sounds: %s, power: %s, volume: %s", "footstep\\" .. "n_" .. material .. queues["n_"][count["n_"]], power, volume * step_volume)
         sound:play(db.actor, 0, sound_object.s2d)
         sound.volume = volume * step_volume
     end
 end
 
-local raycast_count = 4
+function play_cloth_sound(outfit, volume)
+    local cloth = extra_sounds[outfit.class][1]
+    if cloth then
+        local sound = sound_object(cloth .. queues[cloth][count[cloth]])
+        sound:play(db.actor, 0, sound_object.s2d)
+        sound.volume = step_volume * 0.5 * (volume and volume or 1)
+        --printf("%s, volume: %s", cloth .. queues[cloth][count[cloth]], sound.volume)
+
+        count[cloth] = count[cloth] + 1
+        if count[cloth] > limit[cloth] then
+            count[cloth] = 1
+            shuffle_table(queues[cloth])
+        end
+    end
+end
+
+function play_gear_rattle(outfit, volume)
+    local gear = extra_sounds[outfit.class][2]
+    if gear then
+        local sound = sound_object(gear .. queues[gear][count[gear]])
+        sound:play(db.actor, 0, sound_object.s2d)
+        sound.volume = step_volume * 0.5 * (volume and volume or 1)
+        --printf("%s, volume: %s", gear .. queues[gear][count[gear]], sound.volume)
+
+        count[gear] = count[gear] + 1
+        if count[gear] > limit[gear] then
+            count[gear] = 1
+            shuffle_table(queues[gear])
+        end
+    end
+end
+
+function play_backpack_rattle(outfit, volume)
+    if gear_enabled then
+        -- volume based on carry weight, excluding outfit weight
+        local weight = oleh_sound_utils.get_actor_total_weight() or 10
+        local weight_volume = weight and outfit.weight and clamp((weight - outfit.weight)/100, 0.25, 1) or 1
+
+        local sound = sound_object("backpack\\stereo\\backpack_rattle_sprint" .. math.random(16))
+        sound:play(db.actor, 0, sound_object.s3d)
+        sound.volume = weight_volume * gear_volume * 0.5 * (volume and volume or 1)
+    end
+end
+
+local exo_count = true
+local exo_classes = {
+    ["outfit_exo_proto"]    = "light_",
+    ["outfit_exo"]          = "medium_",
+    ["outfit_exo_nosorog"]  = "medium_",
+}
+function play_exo_servo_sound(outfit, volume)
+    if servo_enabled and exo_classes[outfit.class] then
+        local sound = sound_object("exo-gear-walk-jump-land\\servo_exo_walk_" .. exo_classes[outfit.class] .. (exo_count and 2 or 1))
+        sound:play(db.actor, 0, sound_object.s2d)
+        sound.volume = servo_volume * (volume and volume or 1)
+        exo_count = not exo_count
+    end
+end
+
+local raycast_count = 5
 local part_count = false
 function play_ladder_sound(material, volume)
     local ladder_material = ladder_fake_materials[material]
-    -- cast ray to get ladder material (fake ladder materials are not consistent)
+    -- cast ray to get ladder material (fake ladder materials are inconsistent)
     for i=1,raycast_count do
         local ray_material = ladder_materials[get_ladder_material(0.175 + i * 0.075, 0.15 + i * 0.075)]
         if ray_material then ladder_material = ray_material break end
@@ -162,6 +195,7 @@ function play_ladder_sound(material, volume)
     --local detail_snd = sound_object("ladder\\" .. ray_material .. "detail_" .. "1")
     --detail_snd:play(db.actor, 0, sound_object.s2d)
     --detail_snd.volume = step_volume * volume
+    return true
 end
 
 function get_ladder_material(offset_x, offset_z)
@@ -187,23 +221,27 @@ function get_move_state()
     local volume = 1
 
     if IsMoveState('mcSprint') then
-        --move_state = "sprint_"
+        move_state = "sprint_"
         volume = 2
 
     elseif IsMoveState('mcCrouch') then
-        --move_state = "crouch_"
+        move_state = "crouch_"
         volume = 0.5
         if accel_state then
-            --move_state = "prone_"
+            move_state = "prone_"
             volume = 0
         end
 
     elseif accel_state then
-        --move_state = "walk_"
+        move_state = "walk_"
         volume = 0.5
     end
 
-    -- return move_state
+    if IsMoveState('mcClimb') then
+        move_state = "climb_"
+        volume = 1
+    end
+
     return move_state, volume
 end
 
@@ -218,7 +256,7 @@ function ray_cast(pos, dir, range, visualize)
 end
 
 function load_settings()
-    if ui_mcm and oleh_sounds_mcm then
+    if ui_mcm and oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load then
         step_enabled    = ui_mcm.get("oleh_sounds/movement/enabled_footstep_sounds")
 	    step_volume     = ui_mcm.get("oleh_sounds/movement/volume_footstep_sounds") or 0.5
         gear_enabled    = ui_mcm.get("oleh_sounds/movement/enabled_gear_rustle_sounds")
@@ -244,12 +282,12 @@ end
 
 available_materials = {
     ["default"]                        = "default_",
-    ["materials\\asphalt"]             = "asphalt_", -- Асфальт
-    ["materials\\bricks"]              = "concrete_", -- Кирпичная стена
+    ["materials\\asphalt"]             = "concrete_", -- Асфальт
+    ["materials\\bricks"]              = "tile_", -- Кирпичная стена
     ["materials\\bush"]                = "bush_", -- Кусты, крона деревьев, камышы, листья 
     ["materials\\bush_sux"]            = "bush_", -- Кусты, крона деревьев, камышы, листья сухие
-    ["materials\\cloth"]               = "grass_", -- Ткань
-    ["materials\\concrete"]            = "concrete_", -- Монолитный бетон
+    ["materials\\cloth"]               = "default_", -- Ткань
+    ["materials\\concrete"]            = "tile_", -- Монолитный бетон
     ["materials\\death"]               = "earth_", -- Смертоносная земля (нестандартный материал)
     ["materials\\dirt"]                = "earth_", -- Мокрая грязь, болото 
     ["materials\\earth"]               = "earth_", -- Сухая твердая земля (стандартный материал)
@@ -261,12 +299,12 @@ available_materials = {
     ["materials\\gravel"]              = "gravel_", -- Гравий
     ["materials\\metal"]               = "metal_", -- Монолитный метал, толстый кусок железа, танк
     ["materials\\metal_pipe"]          = "metal_", -- Металлическая труба
-    ["materials\\metal_plate"]         = "metal_", -- Металлическая пластина (толщина 2-5см), Ступеньки
+    ["materials\\metal_plate"]         = "metal_plate_", -- Металлическая пластина (толщина 2-5см), Ступеньки
     ["materials\\sand"]                = "gravel_", -- Песок, насыпь
-    ["materials\\setka_rabica"]        = "metal_plate_", -- Сетка рабица, колючая проволока
+    ["materials\\setka_rabica"]        = "metal_", -- Сетка рабица, колючая проволока
     ["materials\\shifer"]              = "tile_", -- Шифер
-    ["materials\\stucco"]              = "asphalt_", -- штукатурка
-    ["materials\\tin"]                 = "metal_", -- Жесть, крыша домов
+    ["materials\\stucco"]              = "concrete_", -- штукатурка
+    ["materials\\tin"]                 = "metal_plate_", -- Жесть, крыша домов
     ["materials\\tree_trunk"]          = "wood_", -- Дерево (ствол)
     ["materials\\water"]               = "water_", -- Вода
     ["materials\\water_radiation"]     = "water_", -- Вода
@@ -279,13 +317,14 @@ available_materials = {
     ["materials\\fake_slide"]          = "default_", -- Материал для колижена (нет звука, следов от пуль, теней)
 
     ["objects\\large_furniture"]       = "wood_", -- Red Forest tunnel planks
-    ["objects\\large_metal_trash"]     = "metal_", -- Limansk bridge
+    ["objects\\large_metal_trash"]     = "metal_plate_", -- Limansk bridge
 }
 
 ladder_materials = {
     ["materials\\metal"]               = "metal_", -- Монолитный метал, толстый кусок железа, танк
     ["materials\\metal_pipe"]          = "metal_", -- Металлическая труба
     ["materials\\metal_plate"]         = "metal_", -- Металлическая пластина (толщина 2-5см), Ступеньки
+    ["materials\\tin"]                 = "metal_", -- Жесть, крыша домов
 
     ["materials\\wood"]                = "wood_", -- Деревянная поверхность, деревянный пол, деревянные ступеньки
     ["materials\\wooden_board"]        = "wood_", -- Деревянная доска (толщина 2-5см), деревянный вагон, ящик

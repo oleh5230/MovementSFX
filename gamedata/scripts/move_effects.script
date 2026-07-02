@@ -187,7 +187,7 @@ function load_settings()
     accel_toggle    = get_console_cmd(1,"g_walk_toggle")    or false
     lookout_toggle  = get_console_cmd(1,"g_lookout_toggle") or false
 
-    if ui_mcm and oleh_sounds_mcm then
+    if ui_mcm and oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load then
         servo_enabled   = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds")
         servo_volume    = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or 0.5
 
@@ -204,7 +204,7 @@ function load_settings()
             ["lookback"]    = ui_mcm.get("oleh_sounds/movement/enabled_lookout_sounds"),
         }
     -- old MCM compatibility
-    elseif ui_mcm and extended_movement_sounds_mcm then
+    elseif ui_mcm and extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load then
         servo_enabled   = ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
         servo_volume    = ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
 
