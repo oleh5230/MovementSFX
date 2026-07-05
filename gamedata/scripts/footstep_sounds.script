@@ -78,31 +78,35 @@ for k,v in pairs(queues) do
 end
 
 function actor_on_footstep(material, power, hud_view, flags)
+    printf("%s %s %s", material, time_global(), burn_tg)
     --flags.ret_value = false -- uncomment to disable engine footstep sounds
     if not step_enabled then return end
     local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
-    local move_state, volume = "n_", 1
-    move_state, volume = get_move_state()
-    material = available_materials[material] or available_materials["default"]
+    local move_state, volume = get_move_state()
+    local _material = oleh_sound_utils.is_actually_grass(material) and available_materials["materials\\grass"] or available_materials[material] or available_materials["default"]
 
     play_cloth_sound(outfit, volume)
     play_gear_rattle(outfit, volume)
     play_backpack_rattle(outfit, volume)
     play_exo_servo_sound(outfit, volume)
 
-    if move_state == "climb_" and play_ladder_sound(material, volume) then
-    -- callback can't catch water_radiation material, leave water steps to engine
-    elseif material ~= "water_" then
-        count["n_"] = count["n_"] + 1
-        if count["n_"] > limit["n_"] then
-            count["n_"] = 1
-            shuffle_table(queues["n_"])
-        end
+    if move_state == "climb_" and play_ladder_sound(_material, volume) then
+    -- callback can't detect 'water_radiation' material, leave water steps to engine
+    elseif _material ~= "water_" then
+        play_footstep_sound(_material, volume)
+    end
+end
 
-        local sound = sound_object("footstep\\" .. "n_" .. material .. queues["n_"][count["n_"]])
-        print_dbg("footstep_sounds: %s, power: %s, volume: %s", "footstep\\" .. "n_" .. material .. queues["n_"][count["n_"]], power, volume * step_volume)
-        sound:play(db.actor, 0, sound_object.s2d)
-        sound.volume = volume * step_volume
+function play_footstep_sound(material, volume)
+    local sound = sound_object("footstep\\" .. "n_" .. material .. queues["n_"][count["n_"]])
+    print_dbg("footstep_sounds: %s, power: %s, volume: %s", "footstep\\" .. "n_" .. material .. queues["n_"][count["n_"]], power, volume * step_volume)
+    sound:play(db.actor, 0, sound_object.s2d)
+    sound.volume = volume * step_volume
+
+    count["n_"] = count["n_"] + 1
+    if count["n_"] > limit["n_"] then
+        count["n_"] = 1
+        shuffle_table(queues["n_"])
     end
 end
 

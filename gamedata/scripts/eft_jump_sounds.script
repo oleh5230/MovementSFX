@@ -200,7 +200,8 @@ function get_material(print)
     --     return final_material
     -- end
 
-    return get_highest_value(ray_hits)
+    material = get_highest_value(ray_hits)
+    return oleh_sound_utils.is_actually_grass(material) and "materials\\grass" or material
 end
 
 function on_option_change()

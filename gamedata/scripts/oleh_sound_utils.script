@@ -87,12 +87,42 @@ function get_outfit_class()
     return cached_outfit_class
 end
 
+burn_tg = 0
+no_grass_near_anomaly_levels = {
+    ["zaton"]       = true,
+    ["jupiter"]     = true,
+    ["pripyat"]     = true,
+}
+
+function actor_on_before_hit(shit, bone_id, flags)
+    if shit.type == hit.burn then
+        burn_tg = time_global()
+    end
+end
+
+-- some levels use 'earth' material for grassy terrain
+-- horrendous levels like Dead City are beyond repair
+function is_actually_grass(material)
+    if material == "materials\\earth"
+    -- no grass in underground areas
+    and level.rain_hemi() > 0.25 then
+        -- no grass near thermal anomalies
+        if no_grass_near_anomaly_levels[level.name()] and (time_global() < burn_tg + 1000) then
+        else
+            return true
+        end
+    end
+    return false
+end
+
 function on_game_start()
     RegisterScriptCallback("on_key_hold", freelook_hold)
     RegisterScriptCallback("on_key_release", freelook_release)
 
     RegisterScriptCallback("actor_on_item_drop", actor_on_item_moved)
     RegisterScriptCallback("actor_item_to_ruck", actor_on_item_moved)
+
+    RegisterScriptCallback("actor_on_before_hit", actor_on_before_hit)
 
     RegisterScriptCallback("on_option_change", load_settings)
     RegisterScriptCallback("on_console_execute", load_settings)
