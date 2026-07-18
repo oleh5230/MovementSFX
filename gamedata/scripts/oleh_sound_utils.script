@@ -104,9 +104,9 @@ end
 -- horrendous levels like Dead City are beyond repair
 function is_actually_grass(material)
     if material == "materials\\earth"
-    -- no grass in underground areas
+    -- no grass underground/indoors
     and level.rain_hemi() > 0.25 then
-        -- no grass near thermal anomalies
+        -- no grass near some thermal anomalies
         if no_grass_near_anomaly_levels[level.name()] and (time_global() < burn_tg + 1000) then
         else
             return true

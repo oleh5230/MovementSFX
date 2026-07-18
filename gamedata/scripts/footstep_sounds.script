@@ -9,6 +9,7 @@ local gear_enabled = true
 local gear_volume = 0.5
 local servo_volume = 0.5
 local servo_enabled = true
+local ice_patch = false
 
 -- extra sounds per outfit class
 extra_sounds = {
@@ -78,7 +79,6 @@ for k,v in pairs(queues) do
 end
 
 function actor_on_footstep(material, power, hud_view, flags)
-    printf("%s %s %s", material, time_global(), burn_tg)
     --flags.ret_value = false -- uncomment to disable engine footstep sounds
     if not step_enabled then return end
     local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
@@ -260,21 +260,15 @@ function ray_cast(pos, dir, range, visualize)
 end
 
 function load_settings()
-    if ui_mcm and oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load then
-        step_enabled    = ui_mcm.get("oleh_sounds/movement/enabled_footstep_sounds")
-	    step_volume     = ui_mcm.get("oleh_sounds/movement/volume_footstep_sounds") or 0.5
-        gear_enabled    = ui_mcm.get("oleh_sounds/movement/enabled_gear_rustle_sounds")
-        gear_volume     = ui_mcm.get("oleh_sounds/movement/volume_gear_rustle_sounds") or 0.5
-        servo_enabled   = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds")
-        servo_volume    = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or 0.5
-    -- old mcm compatibility
-    elseif ui_mcm and extended_movement_sounds then
-        step_enabled    = ui_mcm.get("extended_movement_sounds/enabled_footstep_sounds")
-	    step_volume     = ui_mcm.get("extended_movement_sounds/volume_footstep_sounds") or 0.5
-        gear_enabled    = ui_mcm.get("extended_movement_sounds/enabled_gear_rustle_sounds")
-        gear_volume     = ui_mcm.get("extended_movement_sounds/volume_gear_rustle_sounds") or 0.5
-        servo_enabled   = ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
-        servo_volume    = ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
+    if ui_mcm and ((oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load) or (extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load)) then
+        step_enabled  = ui_mcm.get("oleh_sounds/movement/enabled_footstep_sounds") or ui_mcm.get("extended_movement_sounds/enabled_footstep_sounds")
+        step_volume   = ui_mcm.get("oleh_sounds/movement/volume_footstep_sounds") or ui_mcm.get("extended_movement_sounds/volume_footstep_sounds") or 0.5
+        gear_enabled  = ui_mcm.get("oleh_sounds/movement/enabled_gear_rustle_sounds") or ui_mcm.get("extended_movement_sounds/enabled_gear_rustle_sounds")
+        gear_volume   = ui_mcm.get("oleh_sounds/movement/volume_gear_rustle_sounds") or ui_mcm.get("extended_movement_sounds/volume_gear_rustle_sounds") or 0.5
+        servo_enabled = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds") or ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
+        servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
+
+        ice_patch = ui_mcm.get("oleh_sounds/general/ice_patch") or ui_mcm.get("oleh_sounds/weapons/ice_patch") or ui_mcm.get("grok_casings_sounds/ice_patch")
     end
 end
 

@@ -1,64 +1,13 @@
--- Edited by CustomBeerFairy. Special thanks for ForserX for idea about ray casting.
-
 -- revised by oleh5230, 17.04.25
 -- Last edit: 07.07.25
+-- credits: CustomBeerFairy, ForserX
 
 local debug = false
-
-available_materials = {
-    ["default"]                        = "dirt_",
-    ["materials\\asphalt"]             = "asphalt_", -- Асфальт
-    ["materials\\bricks"]              = "asphalt_", -- Кирпичная стена
-    ["materials\\bush"]                = "grass_", -- Кусты, крона деревьев, камышы, листья 
-    ["materials\\bush_sux"]            = "grass_", -- Кусты, крона деревьев, камышы, листья сухие
-    ["materials\\cloth"]               = "dirt_", -- Ткань
-    ["materials\\concrete"]            = "asphalt_", -- Монолитный бетон
-    ["materials\\death"]               = "dirt_", -- Смертоносная земля (нестандартный материал)
-    ["materials\\dirt"]                = "dirt_", -- Мокрая грязь, болото 
-    ["materials\\earth"]               = "dirt_", -- Сухая твердая земля (стандартный материал)
-    ["materials\\earth_death"]         = "dirt_", -- Сухая твердая земля (нестандартный материал)
-    ["materials\\earth_slide"]         = "dirt_", -- Сухая твердая земля (стандартный материал)
-    ["materials\\flooring_tile"]       = "asphalt_", -- Плитка, кафель
-    ["materials\\glass"]               = "asphalt_", -- Стекло
-    ["materials\\grass"]               = "grass_", -- Земля, покрытая травой
-    ["materials\\gravel"]              = "gravel_", -- Гравий
-    ["materials\\metal"]               = "metal_", -- Монолитный метал, толстый кусок железа, танк
-    ["materials\\metal_pipe"]          = "metal_", -- Металлическая труба
-    ["materials\\metal_plate"]         = "metal_thin_", --"metal_thin_", -- Металлическая пластина (толщина 2-5см), Ступеньки
-    ["materials\\sand"]                = "gravel_", -- Песок, насыпь
-    ["materials\\setka_rabica"]        = "metal_", -- Сетка рабица, колючая проволока
-    ["materials\\shifer"]              = "asphalt_", -- Шифер
-    ["materials\\stucco"]              = "asphalt_", -- штукатурка
-    ["materials\\tin"]                 = "metal_thin_", --"metal_thin_", -- Жесть, крыша домов
-    ["materials\\tree_trunk"]          = "wood_", -- Дерево (ствол)
-    ["materials\\water"]               = "water_", -- Вода
-    ["materials\\water_radiation"]     = "water_", -- Вода
-    ["materials\\wood"]                = "wood_", -- Деревянная поверхность, деревянный пол, деревянные ступеньки
-    ["materials\\wooden_board"]        = "wood_", -- Деревянная доска (толщина 2-5см), деревянный вагон, ящик
-    ["materials\\occ"]                 = "dirt_", -- Материал для оклюжен геометрии
-    ["materials\\fake"]                = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
-    ["materials\\fake_ladders"]        = "dirt_", -- невидимая лестница
-    ["materials\\fake_ladders_woods"]  = "dirt_", -- невидимая деревянная лестница
-    ["materials\\fake_slide"]          = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
-}
-
-fake_materials = {
-    ["materials\\death"]               = true, -- Смертоносная земля (нестандартный материал)
-    ["materials\\occ"]                 = true, -- Материал для оклюжен геометрии
-    ["materials\\fake"]                = true, -- Материал для колижена (нет звука, следов от пуль, теней)
-    ["materials\\fake_ladders"]        = true, -- невидимая лестница
-    ["materials\\fake_ladders_woods"]  = true, -- невидимая деревянная лестница
-    ["materials\\fake_slide"]          = true, -- Материал для колижена (нет звука, следов от пуль, теней)
-}
-
-water_materials = {
-    ["materials\\water"]               = true,
-    ["materials\\water_radiation"]     = true,
-}
 
 local jump_sound, land_sound
 local volume = 0.5
 local enabled = true
+local ice_patch = false
 
 local servo_volume = 0.5
 local servo_enabled = true
@@ -74,13 +23,15 @@ function actor_on_jump()
 
     local material = available_materials[get_material()]
     if not material then return false end
-    jump_sound = sound_object("jump\\jump_" .. material .. math.random(5))
+    jump_sound = sound_object("jump\\jump_" .. material .. math.random(3))
     jump_sound:play(db.actor, 0, sound_object.s2d)
     jump_sound.volume = volume
 
-    -- play backpack rattle
+    -- play gear rattle
     if footstep_sounds and footstep_sounds.play_backpack_rattle then
-        footstep_sounds.play_backpack_rattle(outfit, 3)
+        footstep_sounds.play_backpack_rattle(outfit, 2)
+        footstep_sounds.play_gear_rattle(outfit, 2)
+        footstep_sounds.play_cloth_sound(outfit, 2)
     end
 
     -- play exo servo sounds
@@ -106,9 +57,11 @@ function actor_on_land(landing_speed)
         land_sound.volume = volume * (landing_speed / 5)
     end
 
-    -- play backpack rattle
+    -- play gear rattle
     if footstep_sounds and footstep_sounds.play_backpack_rattle then
         footstep_sounds.play_backpack_rattle(outfit, landing_speed)
+        footstep_sounds.play_gear_rattle(outfit, landing_speed)
+        footstep_sounds.play_cloth_sound(outfit, 1)
     end
 
     -- play exo servo sounds
@@ -205,17 +158,12 @@ function get_material(print)
 end
 
 function on_option_change()
-    if ui_mcm and oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load then
-        enabled         = ui_mcm.get("oleh_sounds/movement/enabled_jump_sounds")
-	    volume          = ui_mcm.get("oleh_sounds/movement/volume_jump_sounds") or 0.5
-        servo_enabled   = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds")
-        servo_volume    = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or 0.5
-    -- old MCM compatibility
-    elseif ui_mcm and extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load then
-        enabled         = ui_mcm.get("extended_movement_sounds/enabled_jump_sounds")
-	    volume          = ui_mcm.get("extended_movement_sounds/volume_jump_sounds") or 0.5
-        servo_enabled   = ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
-        servo_volume    = ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
+    if ui_mcm and ((oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load) or (extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load)) then
+        enabled       = ui_mcm.get("oleh_sounds/movement/enabled_jump_sounds") or ui_mcm.get("extended_movement_sounds/enabled_jump_sounds")
+        volume        = ui_mcm.get("oleh_sounds/movement/volume_jump_sounds") or ui_mcm.get("extended_movement_sounds/volume_jump_sounds") or 0.5
+        servo_enabled = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds") or ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
+        servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
+        ice_patch     = ui_mcm.get("oleh_sounds/general/ice_patch") or ui_mcm.get("oleh_sounds/weapons/ice_patch") or ui_mcm.get("grok_casings_sounds/ice_patch")
     end
 end
 
@@ -237,3 +185,54 @@ function print_dbg(txt, ...)
 		printf("[eft_jump_sounds] " .. txt, ...)
 	end
 end
+
+available_materials = {
+    ["default"]                        = "dirt_",
+    ["materials\\asphalt"]             = "concrete_", -- Асфальт
+    ["materials\\bricks"]              = "concrete_", -- Кирпичная стена
+    ["materials\\bush"]                = "grass_", -- Кусты, крона деревьев, камышы, листья 
+    ["materials\\bush_sux"]            = "grass_", -- Кусты, крона деревьев, камышы, листья сухие
+    ["materials\\cloth"]               = "dirt_", -- Ткань
+    ["materials\\concrete"]            = "concrete_", -- Монолитный бетон
+    ["materials\\death"]               = "dirt_", -- Смертоносная земля (нестандартный материал)
+    ["materials\\dirt"]                = "dirt_", -- Мокрая грязь, болото 
+    ["materials\\earth"]               = "dirt_", -- Сухая твердая земля (стандартный материал)
+    ["materials\\earth_death"]         = "dirt_", -- Сухая твердая земля (нестандартный материал)
+    ["materials\\earth_slide"]         = "dirt_", -- Сухая твердая земля (стандартный материал)
+    ["materials\\flooring_tile"]       = "concrete_", -- Плитка, кафель
+    ["materials\\glass"]               = "concrete_", -- Стекло
+    ["materials\\grass"]               = "grass_", -- Земля, покрытая травой
+    ["materials\\gravel"]              = "gravel_", -- Гравий
+    ["materials\\metal"]               = "metal_", -- Монолитный метал, толстый кусок железа, танк
+    ["materials\\metal_pipe"]          = "metal_", -- Металлическая труба
+    ["materials\\metal_plate"]         = "metal_thin_", --"metal_thin_", -- Металлическая пластина (толщина 2-5см), Ступеньки
+    ["materials\\sand"]                = "gravel_", -- Песок, насыпь
+    ["materials\\setka_rabica"]        = "metal_", -- Сетка рабица, колючая проволока
+    ["materials\\shifer"]              = "concrete_", -- Шифер
+    ["materials\\stucco"]              = "concrete_", -- штукатурка
+    ["materials\\tin"]                 = "metal_thin_", --"metal_thin_", -- Жесть, крыша домов
+    ["materials\\tree_trunk"]          = "wood_", -- Дерево (ствол)
+    ["materials\\water"]               = "water_", -- Вода
+    ["materials\\water_radiation"]     = "water_", -- Вода
+    ["materials\\wood"]                = "wood_", -- Деревянная поверхность, деревянный пол, деревянные ступеньки
+    ["materials\\wooden_board"]        = "wood_", -- Деревянная доска (толщина 2-5см), деревянный вагон, ящик
+    ["materials\\occ"]                 = "dirt_", -- Материал для оклюжен геометрии
+    ["materials\\fake"]                = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
+    ["materials\\fake_ladders"]        = "dirt_", -- невидимая лестница
+    ["materials\\fake_ladders_woods"]  = "dirt_", -- невидимая деревянная лестница
+    ["materials\\fake_slide"]          = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
+}
+
+fake_materials = {
+    ["materials\\death"]               = true, -- Смертоносная земля (нестандартный материал)
+    ["materials\\occ"]                 = true, -- Материал для оклюжен геометрии
+    ["materials\\fake"]                = true, -- Материал для колижена (нет звука, следов от пуль, теней)
+    ["materials\\fake_ladders"]        = true, -- невидимая лестница
+    ["materials\\fake_ladders_woods"]  = true, -- невидимая деревянная лестница
+    ["materials\\fake_slide"]          = true, -- Материал для колижена (нет звука, следов от пуль, теней)
+}
+
+water_materials = {
+    ["materials\\water"]               = true,
+    ["materials\\water_radiation"]     = true,
+}
