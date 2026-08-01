@@ -1,3 +1,6 @@
+-- adds exo footstep sounds for NPCs
+-- copied from Exo Servomotor Sounds by HarukaSai
+
 xr_motivator.motivator_binder.net_spawn = function(self, se_abstract)
 	--utils_data.debug_write(strformat("\n----%s:net_spawn()---%s visual=%s",self.object:name(),self.object:character_name(),self.object:get_visual_name()),true)
 	if not object_binder.net_spawn(self, se_abstract) then

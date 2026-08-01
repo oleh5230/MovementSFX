@@ -8,6 +8,7 @@ local jump_sound, land_sound
 local volume = 0.5
 local enabled = true
 local ice_patch = false
+local grass_patch = false
 
 local servo_volume = 0.5
 local servo_enabled = true
@@ -29,7 +30,7 @@ function actor_on_jump()
 
     -- play gear rattle
     if footstep_sounds and footstep_sounds.play_backpack_rattle then
-        footstep_sounds.play_backpack_rattle(outfit, 2)
+        footstep_sounds.play_backpack_rattle(outfit, 1)
         footstep_sounds.play_gear_rattle(outfit, 2)
         footstep_sounds.play_cloth_sound(outfit, 2)
     end
@@ -139,22 +140,17 @@ function get_material(print)
     --     end
     -- end
 
-    -- local final_material = get_highest_value(ray_hits)
-    -- if final_material then
-    --     --print_dbg("selected material: %s", final_material)
-    --     return final_material
-    -- else
-    --     -- backup horizontal plus-shaped ray cast
-    --     final_material = ray_cast(vector():set(pos.x + 0.225, pos.y - 0.001, pos.z), vector():set(-1, 0, 0), 0.45, debug)
-    --     if not final_material then
-    --         final_material = ray_cast(vector():set(pos.x, pos.y - 0.001, pos.z + 0.225), vector():set(0, 0, -1), 0.45, debug)
-    --     end
-    --     print_dbg("backup material: %s", final_material)
-    --     return final_material
-    -- end
+    local final_material = get_highest_value(ray_hits)
+    if not final_material then
+        -- backup horizontal plus-shaped ray cast
+        final_material = ray_cast(vector():set(pos.x + 0.225, pos.y - 0.001, pos.z), vector():set(-1, 0, 0), 0.45, debug)
+        if not final_material then
+            final_material = ray_cast(vector():set(pos.x, pos.y - 0.001, pos.z + 0.225), vector():set(0, 0, -1), 0.45, debug)
+        end
+        print_dbg("backup material: %s", final_material)
+    end
 
-    material = get_highest_value(ray_hits)
-    return oleh_sound_utils.is_actually_grass(material) and "materials\\grass" or material
+    return grass_patch and oleh_sound_utils.is_actually_grass and oleh_sound_utils.is_actually_grass(final_material) and "materials\\grass" or final_material
 end
 
 function on_option_change()
@@ -164,6 +160,7 @@ function on_option_change()
         servo_enabled = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds") or ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
         servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
         ice_patch     = ui_mcm.get("oleh_sounds/general/ice_patch") or ui_mcm.get("oleh_sounds/weapons/ice_patch") or ui_mcm.get("grok_casings_sounds/ice_patch")
+        grass_patch = ui_mcm.get("oleh_sounds/general/grass_patch") or ui_mcm.get("extended_movement_sounds/grass_patch")
     end
 end
 
@@ -205,12 +202,12 @@ available_materials = {
     ["materials\\gravel"]              = "gravel_", -- Гравий
     ["materials\\metal"]               = "metal_", -- Монолитный метал, толстый кусок железа, танк
     ["materials\\metal_pipe"]          = "metal_", -- Металлическая труба
-    ["materials\\metal_plate"]         = "metal_thin_", --"metal_thin_", -- Металлическая пластина (толщина 2-5см), Ступеньки
+    ["materials\\metal_plate"]         = "metal_", --"metal_thin_", -- Металлическая пластина (толщина 2-5см), Ступеньки
     ["materials\\sand"]                = "gravel_", -- Песок, насыпь
     ["materials\\setka_rabica"]        = "metal_", -- Сетка рабица, колючая проволока
     ["materials\\shifer"]              = "concrete_", -- Шифер
     ["materials\\stucco"]              = "concrete_", -- штукатурка
-    ["materials\\tin"]                 = "metal_thin_", --"metal_thin_", -- Жесть, крыша домов
+    ["materials\\tin"]                 = "metal_", --"metal_thin_", -- Жесть, крыша домов
     ["materials\\tree_trunk"]          = "wood_", -- Дерево (ствол)
     ["materials\\water"]               = "water_", -- Вода
     ["materials\\water_radiation"]     = "water_", -- Вода

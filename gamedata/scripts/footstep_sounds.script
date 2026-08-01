@@ -7,10 +7,12 @@ local step_enabled = true
 local step_volume = 0.5
 local gear_enabled = true
 local gear_volume = 0.5
-local servo_volume = 0.5
 local servo_enabled = true
+local servo_volume = 0.5
 local ice_patch = false
+local grass_patch = false
 
+backpack_rattle_limit = 12
 -- extra sounds per outfit class
 extra_sounds = {
     ["default"]             = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"},
@@ -83,7 +85,7 @@ function actor_on_footstep(material, power, hud_view, flags)
     if not step_enabled then return end
     local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
     local move_state, volume = get_move_state()
-    local _material = oleh_sound_utils.is_actually_grass(material) and available_materials["materials\\grass"] or available_materials[material] or available_materials["default"]
+    local _material = grass_patch and oleh_sound_utils.is_actually_grass and oleh_sound_utils.is_actually_grass(material) and available_materials["materials\\grass"] or available_materials[material] or available_materials["default"]
 
     play_cloth_sound(outfit, volume)
     play_gear_rattle(outfit, volume)
@@ -148,9 +150,9 @@ function play_backpack_rattle(outfit, volume)
         local weight = oleh_sound_utils.get_actor_total_weight() or 10
         local weight_volume = weight and outfit.weight and clamp((weight - outfit.weight)/100, 0.25, 1) or 1
 
-        local sound = sound_object("backpack\\stereo\\backpack_rattle_sprint" .. math.random(16))
+        local sound = sound_object("backpack\\stereo\\backpack_rattle_sprint" .. math.random(backpack_rattle_limit))
         sound:play(db.actor, 0, sound_object.s3d)
-        sound.volume = weight_volume * gear_volume * 0.5 * (volume and volume or 1)
+        sound.volume = weight_volume * gear_volume * 0.2 * (volume and volume or 1)
     end
 end
 
@@ -269,6 +271,7 @@ function load_settings()
         servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
 
         ice_patch = ui_mcm.get("oleh_sounds/general/ice_patch") or ui_mcm.get("oleh_sounds/weapons/ice_patch") or ui_mcm.get("grok_casings_sounds/ice_patch")
+        grass_patch = ui_mcm.get("oleh_sounds/general/grass_patch") or ui_mcm.get("extended_movement_sounds/grass_patch")
     end
 end
 
