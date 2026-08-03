@@ -12,7 +12,8 @@ local servo_volume = 0.5
 local ice_patch = false
 local grass_patch = false
 
-backpack_rattle_limit = 12
+-- number of backpack rattle sound files (samples)
+backpack_rattle_limit = 10
 -- extra sounds per outfit class
 extra_sounds = {
     ["default"]             = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"},
@@ -81,6 +82,9 @@ for k,v in pairs(queues) do
 end
 
 function actor_on_footstep(material, power, hud_view, flags)
+    -- footstep callback is being sent upon landing (sometimes even twice)
+    if oleh_sound_utils.land_tg and oleh_sound_utils.land_tg + 200 > time_global() then return end
+
     --flags.ret_value = false -- uncomment to disable engine footstep sounds
     if not step_enabled then return end
     local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
@@ -277,6 +281,7 @@ end
 
 function on_game_start()
     RegisterScriptCallback("actor_on_footstep", actor_on_footstep)
+    RegisterScriptCallback("actor_on_land", actor_on_land)
     RegisterScriptCallback("on_option_change", load_settings)
     load_settings()
 end

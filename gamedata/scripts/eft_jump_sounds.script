@@ -35,6 +35,11 @@ function actor_on_jump()
         footstep_sounds.play_cloth_sound(outfit, 2)
     end
 
+    -- play weapon rattle
+    if eft_rattle and eft_rattle.gamma then
+        eft_rattle.play_sprint_rattle_sound(1, 1)
+    end
+
     -- play exo servo sounds
     if servo_enabled and exo_classes[outfit.class] then
         local sound = sound_object("exo-gear-walk-jump-land\\servo_exo_jump_" .. exo_classes[outfit.class])
@@ -63,6 +68,11 @@ function actor_on_land(landing_speed)
         footstep_sounds.play_backpack_rattle(outfit, landing_speed)
         footstep_sounds.play_gear_rattle(outfit, landing_speed)
         footstep_sounds.play_cloth_sound(outfit, 1)
+    end
+
+    -- play weapon rattle
+    if eft_rattle and eft_rattle.gamma then
+        eft_rattle.play_aim_sound(landing_speed, 1)
     end
 
     -- play exo servo sounds

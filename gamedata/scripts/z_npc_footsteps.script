@@ -214,4 +214,5 @@ function npc_on_foot_step(binder,obj,power,b_play,b_on_ground,b_hud_view)
 		visuals[id] = visual
 	end
 	sound_table[id]:play_at_pos(obj, obj:position(), 0, sound_object.s3d)
+	sound_table[id].volume = power
 end

@@ -1,6 +1,8 @@
 FreelookActive = false
 local freelook_toggle = false
 
+land_tg = 0
+
 function freelook_hold(key)
     local bind = dik_to_bind(key)
 	if bind == key_bindings.kFREELOOK then
@@ -17,6 +19,10 @@ end
 
 function load_settings()
     freelook_toggle = get_console_cmd(1,"g_freelook_toggle") or false
+end
+
+function actor_on_land()
+    land_tg = time_global()
 end
 
 local cached_outfit = {
@@ -118,6 +124,8 @@ end
 function on_game_start()
     RegisterScriptCallback("on_key_hold", freelook_hold)
     RegisterScriptCallback("on_key_release", freelook_release)
+
+    RegisterScriptCallback("actor_on_land", actor_on_land)
 
     RegisterScriptCallback("actor_on_item_drop", actor_on_item_moved)
     RegisterScriptCallback("actor_item_to_ruck", actor_on_item_moved)
