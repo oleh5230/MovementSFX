@@ -164,13 +164,17 @@ function get_material(print)
 end
 
 function on_option_change()
-    if ui_mcm and ((oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load) or (extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load)) then
-        enabled       = ui_mcm.get("oleh_sounds/movement/enabled_jump_sounds") or ui_mcm.get("extended_movement_sounds/enabled_jump_sounds")
-        volume        = ui_mcm.get("oleh_sounds/movement/volume_jump_sounds") or ui_mcm.get("extended_movement_sounds/volume_jump_sounds") or 0.5
-        servo_enabled = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds") or ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
-        servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
-        ice_patch     = ui_mcm.get("oleh_sounds/general/ice_patch") or ui_mcm.get("oleh_sounds/weapons/ice_patch") or ui_mcm.get("grok_casings_sounds/ice_patch")
-        grass_patch = ui_mcm.get("oleh_sounds/general/grass_patch") or ui_mcm.get("extended_movement_sounds/grass_patch")
+    if ui_mcm and oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load then
+        enabled       = ui_mcm.get("oleh_sounds/movement/enabled_jump_sounds")
+        volume        = ui_mcm.get("oleh_sounds/movement/volume_jump_sounds") or 0.5
+        servo_enabled = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds")
+        servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or 0.5
+        grass_patch   = ui_mcm.get("oleh_sounds/general/grass_patch")
+    elseif ui_mcm and extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load then
+        enabled       = ui_mcm.get("extended_movement_sounds/enabled_jump_sounds")
+        volume        = ui_mcm.get("extended_movement_sounds/volume_jump_sounds") or 0.5
+        servo_enabled = ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
+        servo_volume  = ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
     end
 end
 

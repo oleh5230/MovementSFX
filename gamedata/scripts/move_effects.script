@@ -187,21 +187,37 @@ function load_settings()
     accel_toggle   = get_console_cmd(1,"g_walk_toggle")    or false
     lookout_toggle = get_console_cmd(1,"g_lookout_toggle") or false
 
-    if ui_mcm and ((oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load) or (extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load)) then
-        servo_enabled = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds") or ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
-        servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
+    if ui_mcm and oleh_sounds_mcm and oleh_sounds_mcm.on_mcm_load then
+        servo_enabled = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds")
+        servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or 0.5
 
         volume_settings = {
-            ["crouch"]   = ui_mcm.get("oleh_sounds/movement/volume_stance_sounds") or ui_mcm.get("extended_movement_sounds/volume_stance_sounds") or 0.5,
-            ["stand"]    = ui_mcm.get("oleh_sounds/movement/volume_stance_sounds") or ui_mcm.get("extended_movement_sounds/volume_stance_sounds") or 0.5,
-            ["lookout"]  = ui_mcm.get("oleh_sounds/movement/volume_lookout_sounds") or ui_mcm.get("extended_movement_sounds/volume_lookout_sounds") or 0.5,
-            ["lookback"] = ui_mcm.get("oleh_sounds/movement/volume_lookout_sounds") or ui_mcm.get("extended_movement_sounds/volume_lookout_sounds") or 0.5,
+            ["crouch"]   = ui_mcm.get("oleh_sounds/movement/volume_stance_sounds") or 0.5,
+            ["stand"]    = ui_mcm.get("oleh_sounds/movement/volume_stance_sounds") or 0.5,
+            ["lookout"]  = ui_mcm.get("oleh_sounds/movement/volume_lookout_sounds") or 0.5,
+            ["lookback"] = ui_mcm.get("oleh_sounds/movement/volume_lookout_sounds") or 0.5,
         }
         toggle_settings = {
-            ["crouch"]   = ui_mcm.get("oleh_sounds/movement/enabled_stance_sounds") or ui_mcm.get("extended_movement_sounds/enabled_stance_sounds"),
-            ["stand"]    = ui_mcm.get("oleh_sounds/movement/enabled_stance_sounds") or ui_mcm.get("extended_movement_sounds/enabled_stance_sounds"),
-            ["lookout"]  = ui_mcm.get("oleh_sounds/movement/enabled_lookout_sounds") or ui_mcm.get("extended_movement_sounds/enabled_lookout_sounds"),
-            ["lookback"] = ui_mcm.get("oleh_sounds/movement/enabled_lookout_sounds") or ui_mcm.get("extended_movement_sounds/enabled_lookout_sounds"),
+            ["crouch"]   = ui_mcm.get("oleh_sounds/movement/enabled_stance_sounds"),
+            ["stand"]    = ui_mcm.get("oleh_sounds/movement/enabled_stance_sounds"),
+            ["lookout"]  = ui_mcm.get("oleh_sounds/movement/enabled_lookout_sounds"),
+            ["lookback"] = ui_mcm.get("oleh_sounds/movement/enabled_lookout_sounds"),
+        }
+    elseif ui_mcm and extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load then
+        servo_enabled = ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
+        servo_volume  = ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
+
+        volume_settings = {
+            ["crouch"]   = ui_mcm.get("extended_movement_sounds/volume_stance_sounds") or 0.5,
+            ["stand"]    = ui_mcm.get("extended_movement_sounds/volume_stance_sounds") or 0.5,
+            ["lookout"]  = ui_mcm.get("extended_movement_sounds/volume_lookout_sounds") or 0.5,
+            ["lookback"] = ui_mcm.get("extended_movement_sounds/volume_lookout_sounds") or 0.5,
+        }
+        toggle_settings = {
+            ["crouch"]   = ui_mcm.get("extended_movement_sounds/enabled_stance_sounds"),
+            ["stand"]    = ui_mcm.get("extended_movement_sounds/enabled_stance_sounds"),
+            ["lookout"]  = ui_mcm.get("extended_movement_sounds/enabled_lookout_sounds"),
+            ["lookback"] = ui_mcm.get("extended_movement_sounds/enabled_lookout_sounds"),
         }
     end
 end
