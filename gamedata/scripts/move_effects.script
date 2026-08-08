@@ -21,19 +21,6 @@ local volume_settings = {
     ["lookout"]     = 0.5,
     ["lookback"]    = 0.5,
 }
-local count = {
-    ["crouch"]      = 1,
-    ["stand"]       = 1,
-    ["lookout"]     = 1,
-    ["lookback"]    = 1,
-}
-local limit = {
-    ["crouch"]      = 8,
-    ["stand"]       = 8,
-    ["lookout"]     = 4,
-    ["lookback"]    = 4,
-}
-
 local states_blacklist = {
     ['mcJump']      = true,
     ['mcFall']      = true,
@@ -42,33 +29,39 @@ local states_blacklist = {
 
 local servo_enabled = true
 local servo_volume = 0.5
-local exo_classes = {
-    ["outfit_exo_proto"]    = "light_",
-    ["outfit_exo"]          = "",
-    ["outfit_exo_nosorog"]  = "",
-}
 
 -- create sample queues to mitigate the issue of same sample playing multiple time in a row
-queues = {
-    ["crouch"] = {},
-    ["stand"] = {},
-    ["lookout"] = {},
-    ["lookback"] = {},
+queues = {}
+count = {}
+limit = {
+    ["crouch"]      = 4,
+    ["stand"]       = 4,
+    ["lookout"]     = 4,
+    ["lookback"]    = 4,
 }
-for k,v in pairs(queues) do
-    for i=1, limit[k] do
-        table.insert(queues[k], i)
+function init()
+    for k,v in pairs(limit) do
+        queues[k] = {}
+        count[k] = 1
     end
-    shuffle_table(queues[k])
+
+    for k,v in pairs(queues) do
+        for i=1, limit[k] do
+            table.insert(queues[k], i)
+        end
+        shuffle_table(queues[k])
+    end
 end
 
+local backpack_rattle = footstep_sounds and footstep_sounds.play_backpack_rattle
 function on_key_press(key)
-    if device():is_paused() or not is_hud_free() or not MovementAllowed then return end
+    if device():is_paused() or not oleh_sound_utils.is_hud_free() or not MovementAllowed then return end
 
     local bind = dik_to_bind(key)
     local volume = 1
     local body_st = get_body_state()
     if body_st == "blocked" then return false end
+    local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
 
     if bind == key_bindings.kCROUCH and IsMoveState('mcAccel') then
         volume = 1.5
@@ -77,15 +70,23 @@ function on_key_press(key)
     if bind == key_bindings.kCROUCH then
         if body_st == "stand" then
             play_sound("crouch", volume)
+            play_exo_servo_sound(outfit, volume)
+            if backpack_rattle then footstep_sounds.play_backpack_rattle(outfit, volume) end
         else
             play_sound("stand", volume)
+            play_exo_servo_sound(outfit, volume)
+            if backpack_rattle then footstep_sounds.play_backpack_rattle(outfit, volume) end
         end
 
     elseif (bind == key_bindings.kACCEL and IsMoveState('mcCrouch')) then
         if body_st == "crouch" then
             play_sound("crouch", volume)
+            play_exo_servo_sound(outfit, volume)
+            if backpack_rattle then footstep_sounds.play_backpack_rattle(outfit, volume) end
         else
             play_sound("stand", volume)
+            play_exo_servo_sound(outfit, volume)
+            if backpack_rattle then footstep_sounds.play_backpack_rattle(outfit, volume) end
         end
 
     elseif (bind == key_bindings.kSPRINT_TOGGLE and IsMoveState('mcCrouch')) and crouch_toggle then
@@ -98,18 +99,23 @@ function on_key_press(key)
 end
 
 function on_key_release(key)
-    if device():is_paused() or not is_hud_free() or not MovementAllowed then return end
+    if device():is_paused() or not oleh_sound_utils.is_hud_free() or not MovementAllowed then return end
 
     local bind = dik_to_bind(key)
     local volume = 1
     local body_st = get_body_state()
     if body_st == "blocked" then return false end
+    local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
 
     if bind == key_bindings.kCROUCH and not crouch_toggle then
         play_sound("stand", volume)
+        play_exo_servo_sound(outfit, volume)
+        if backpack_rattle then footstep_sounds.play_backpack_rattle(outfit, volume) end
 
     elseif (bind == key_bindings.kACCEL and IsMoveState('mcCrouch')) and not accel_toggle then
         play_sound("stand", volume)
+        play_exo_servo_sound(outfit, volume)
+        if backpack_rattle then footstep_sounds.play_backpack_rattle(outfit, volume) end
 
     elseif (bind == key_bindings.kR_LOOKOUT or bind == key_bindings.kL_LOOKOUT) and not lookout_toggle and not oleh_sound_utils.FreelookActive then
         play_sound("lookback", volume)
@@ -118,7 +124,9 @@ end
 
 function play_sound(movement, volume)
     if not toggle_settings[movement] then return end
-    local outfit_class = oleh_sound_utils.get_outfit_class()
+    if not count[movement] or not limit[movement] then
+        printe("!ERROR move_effects | missing parameters: %s %s", count[movement], limit[movement])
+    return end
 
     local sound = sound_object(movement .. "\\" .. movement .. "_" .. queues[movement][count[movement]])
     sound:play(db.actor, 0, sound_object.s2d)
@@ -130,16 +138,6 @@ function play_sound(movement, volume)
         shuffle_table(queues[movement])
     end
     --print_dbg("movement_sounds // movement: %s volume: %s", movement, volume)
-
-    -- play exo servo sounds
-    if servo_enabled and exo_classes[outfit_class] then
-        local num = movement == "stand" and 2 or movement == "crouch" and 1 or nil
-        if num then
-            sound = sound_object("exo-gear-walk-jump-land\\exo_crouch_stand_" .. exo_classes[outfit_class] .. math.random(9))
-            sound:play(db.actor, 0, sound_object.s2d)
-            sound.volume = servo_volume * 0.5
-        end
-    end
 
     --[[ apparently can cause crashes
     -- Exo servo sounds
@@ -158,11 +156,13 @@ function play_sound(movement, volume)
     ]]
 end
 
-function is_hud_free()
-    return  actor_menu.is_hud_free()
-    or      _GUIs["UIInventory"] and ui_inventory.GUI and ui_inventory.GUI.mode == "inventory"
-    or      _GUIs["UIWheelAmmo"]
-    or      _GUIs["UIWheelCompanion"]
+function play_exo_servo_sound(outfit, volume)
+    local exo_class = oleh_sound_utils.exo_classes[outfit.class]
+    if servo_enabled and exo_class then
+        local sound = sound_object("exo\\exo_crouch_stand_" .. exo_class .. math.random(6))
+        sound:play(db.actor, 0, sound_object.s2d)
+        sound.volume = servo_volume * 0.5 * volume
+    end
 end
 
 function get_body_state()
@@ -240,6 +240,7 @@ function on_game_start()
     RegisterScriptCallback("on_option_change", load_settings)
     RegisterScriptCallback("on_console_execute",load_settings)
     load_settings()
+    init()
 end
 
 function print_dbg(...)

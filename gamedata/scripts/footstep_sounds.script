@@ -9,8 +9,10 @@ local gear_enabled = true
 local gear_volume = 0.5
 local servo_enabled = true
 local servo_volume = 0.5
+local servo_legacy = false
 local ice_patch = false
 local grass_patch = false
+local exo_path = servo_legacy and "exo_legacy\\servo_exo_walk_" or "exo\\servo_exo_walk_"
 
 -- number of backpack rattle sound files (samples)
 backpack_rattle_limit = 10
@@ -83,7 +85,7 @@ end
 
 function actor_on_footstep(material, power, hud_view, flags)
     -- footstep callback is being sent upon landing (sometimes even twice)
-    if oleh_sound_utils.land_tg + 200 > time_global() then return end
+    if lang_tg and oleh_sound_utils.land_tg + 200 > time_global() then return end
 
     --flags.ret_value = false -- uncomment to disable engine footstep sounds
     if not step_enabled then return end
@@ -162,14 +164,10 @@ function play_backpack_rattle(outfit, volume)
 end
 
 local exo_count = true
-local exo_classes = {
-    ["outfit_exo_proto"]    = "light_",
-    ["outfit_exo"]          = "medium_",
-    ["outfit_exo_nosorog"]  = "medium_",
-}
 function play_exo_servo_sound(outfit, volume)
-    if servo_enabled and exo_classes[outfit.class] then
-        local sound = sound_object("exo-gear-walk-jump-land\\servo_exo_walk_" .. exo_classes[outfit.class] .. (exo_count and 2 or 1))
+    local exo_class = oleh_sound_utils.exo_classes[outfit.class]
+    if servo_enabled and exo_class then
+        local sound = sound_object(exo_path .. exo_class .. (exo_count and 2 or 1))
         sound:play(db.actor, 0, sound_object.s2d)
         sound.volume = servo_volume * (volume and volume or 1)
         exo_count = not exo_count
@@ -274,9 +272,10 @@ function load_settings()
         gear_volume   = ui_mcm.get("oleh_sounds/movement/volume_gear_rustle_sounds") or 0.5
         servo_enabled = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds")
         servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or 0.5
+        servo_legacy  = ui_mcm.get("oleh_sounds/movement/legacy_servo_sounds")
 
-        ice_patch     = ui_mcm.get("oleh_sounds/general/ice_patch")
-        grass_patch   = ui_mcm.get("oleh_sounds/general/grass_patch")
+        ice_patch = ui_mcm.get("oleh_sounds/general/ice_patch") or ui_mcm.get("oleh_sounds/weapons/ice_patch")
+        grass_patch = ui_mcm.get("oleh_sounds/general/grass_patch")
     elseif ui_mcm and extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load then
         step_enabled  = ui_mcm.get("extended_movement_sounds/enabled_footstep_sounds")
         step_volume   = ui_mcm.get("extended_movement_sounds/volume_footstep_sounds") or 0.5
@@ -284,7 +283,11 @@ function load_settings()
         gear_volume   = ui_mcm.get("extended_movement_sounds/volume_gear_rustle_sounds") or 0.5
         servo_enabled = ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
         servo_volume  = ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
+
+        ice_patch = ui_mcm.get("grok_casings_sounds/ice_patch")
+        grass_patch = ui_mcm.get("extended_movement_sounds/grass_patch")
     end
+    exo_path = servo_legacy and "exo_legacy\\servo_exo_walk_" or "exo\\servo_exo_walk_"
 end
 
 function on_game_start()

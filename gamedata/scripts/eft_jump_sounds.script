@@ -7,17 +7,16 @@ local debug = false
 local jump_sound, land_sound
 local volume = 0.5
 local enabled = true
-local ice_patch = false
-local grass_patch = false
-
 local servo_volume = 0.5
 local servo_enabled = true
-local exo_classes = {
-    ["outfit_exo_proto"]    = "light",
-    ["outfit_exo"]          = "medium",
-    ["outfit_exo_nosorog"]  = "medium",
-}
+local servo_legacy = false
+local ice_patch = false
+local grass_patch = false
+local exo_jump = servo_legacy and "exo_legacy\\servo_exo_jump_" or "exo\\servo_exo_jump_"
+local exo_land = servo_legacy and "exo_legacy\\servo_exo_land_" or "exo\\servo_exo_land_"
 
+local backpack_rattle = footstep_sounds and footstep_sounds.play_backpack_rattle
+local gamma = eft_rattle and eft_rattle.gamma
 function actor_on_jump()
     if not enabled then return end
     local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
@@ -29,20 +28,21 @@ function actor_on_jump()
     jump_sound.volume = volume
 
     -- play gear rattle
-    if footstep_sounds and footstep_sounds.play_backpack_rattle then
-        footstep_sounds.play_backpack_rattle(outfit, 1)
-        footstep_sounds.play_gear_rattle(outfit, 2)
-        footstep_sounds.play_cloth_sound(outfit, 2)
+    if backpack_rattle then
+        footstep_sounds.play_backpack_rattle(outfit, volume)
+        footstep_sounds.play_gear_rattle(outfit, volume)
+        footstep_sounds.play_cloth_sound(outfit, volume)
     end
 
     -- play weapon rattle
-    if eft_rattle and eft_rattle.gamma then
+    if gamma then
         eft_rattle.play_sprint_rattle_sound(1, 1)
     end
 
     -- play exo servo sounds
-    if servo_enabled and exo_classes[outfit.class] then
-        local sound = sound_object("exo-gear-walk-jump-land\\servo_exo_jump_" .. exo_classes[outfit.class])
+    local exo_class = oleh_sound_utils.exo_classes[outfit.class]
+    if servo_enabled and exo_class then
+        local sound = sound_object(exo_jump .. exo_class)
         sound:play(db.actor, 0, sound_object.s2d)
         sound.volume = servo_volume
     end
@@ -65,21 +65,22 @@ function actor_on_land(landing_speed)
 
     -- play gear rattle
     if footstep_sounds and footstep_sounds.play_backpack_rattle then
-        footstep_sounds.play_backpack_rattle(outfit, landing_speed)
-        footstep_sounds.play_gear_rattle(outfit, landing_speed)
+        footstep_sounds.play_backpack_rattle(outfit, landing_speed / 5)
+        footstep_sounds.play_gear_rattle(outfit, 1)
         footstep_sounds.play_cloth_sound(outfit, 1)
     end
 
     -- play weapon rattle
     if eft_rattle and eft_rattle.gamma then
-        eft_rattle.play_aim_sound(landing_speed, 1)
+        eft_rattle.play_aim_sound(landing_speed / 5, 1)
     end
 
     -- play exo servo sounds
-    if servo_enabled and exo_classes[outfit.class] then
-        local sound = sound_object("exo-gear-walk-jump-land\\servo_exo_land_" .. exo_classes[outfit.class])
+    local exo_class = oleh_sound_utils.exo_classes[outfit.class]
+    if servo_enabled and exo_class then
+        local sound = sound_object(exo_land .. exo_class)
         sound:play(db.actor, 0, sound_object.s2d)
-        sound.volume = servo_volume
+        sound.volume = servo_volume * (landing_speed / 5)
     end
 end
 
@@ -169,13 +170,17 @@ function on_option_change()
         volume        = ui_mcm.get("oleh_sounds/movement/volume_jump_sounds") or 0.5
         servo_enabled = ui_mcm.get("oleh_sounds/movement/enabled_servo_sounds")
         servo_volume  = ui_mcm.get("oleh_sounds/movement/volume_servo_sounds") or 0.5
+        servo_legacy  = ui_mcm.get("oleh_sounds/movement/legacy_servo_sounds")
         grass_patch   = ui_mcm.get("oleh_sounds/general/grass_patch")
+        ice_patch     = ui_mcm.get("oleh_sounds/general/ice_patch")
     elseif ui_mcm and extended_movement_sounds_mcm and extended_movement_sounds_mcm.on_mcm_load then
         enabled       = ui_mcm.get("extended_movement_sounds/enabled_jump_sounds")
         volume        = ui_mcm.get("extended_movement_sounds/volume_jump_sounds") or 0.5
         servo_enabled = ui_mcm.get("extended_movement_sounds/enabled_servo_sounds")
         servo_volume  = ui_mcm.get("extended_movement_sounds/volume_servo_sounds") or 0.5
     end
+    exo_jump = servo_legacy and "exo_legacy\\servo_exo_jump_" or "exo\\servo_exo_jump_"
+    exo_land = servo_legacy and "exo_legacy\\servo_exo_land_" or "exo\\servo_exo_land_"
 end
 
 function on_game_start()

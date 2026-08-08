@@ -25,6 +25,19 @@ function actor_on_land()
     land_tg = time_global()
 end
 
+exo_classes = {
+    ["outfit_exo_proto"]    = "light",
+    ["outfit_exo"]          = "medium",
+    ["outfit_exo_nosorog"]  = "medium",
+}
+
+function is_hud_free()
+    return  actor_menu.is_hud_free()
+    or      _GUIs["UIInventory"] and ui_inventory.GUI and ui_inventory.GUI.mode == "inventory"
+    or      _GUIs["UIWheelAmmo"]
+    or      _GUIs["UIWheelCompanion"]
+end
+
 local cached_outfit = {
     id = nil,
     class = "default",

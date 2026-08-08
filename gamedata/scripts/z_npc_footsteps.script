@@ -210,9 +210,9 @@ function npc_on_foot_step(binder,obj,power,b_play,b_on_ground,b_hud_view)
 	if not kind then return end
     local id = obj:id()
 	if not sound_table[id] or visuals[id] ~= visual then
-		sound_table[id] = sound_object("npc-exo-servo\\".. kind .."_servo_exo_walk" .. math.random(2))
+		sound_table[id] = sound_object("exo_npc\\".. kind .."_servo_exo_walk" .. math.random(2))
 		visuals[id] = visual
 	end
 	sound_table[id]:play_at_pos(obj, obj:position(), 0, sound_object.s3d)
-	sound_table[id].volume = power * 2
+	sound_table[id].volume = power
 end
