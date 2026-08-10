@@ -4,7 +4,6 @@
 
 local debug = false
 
-local jump_sound, land_sound
 local volume = 0.5
 local enabled = true
 local servo_volume = 0.5
@@ -12,51 +11,53 @@ local servo_enabled = true
 local servo_legacy = false
 local ice_patch = false
 local grass_patch = false
+
+local jump_sound, land_sound
 local exo_jump = servo_legacy and "exo_legacy\\servo_exo_jump_" or "exo\\servo_exo_jump_"
 local exo_land = servo_legacy and "exo_legacy\\servo_exo_land_" or "exo\\servo_exo_land_"
 
-local backpack_rattle = footstep_sounds and footstep_sounds.play_backpack_rattle
-local gamma = eft_rattle and eft_rattle.gamma
+local utils = oleh_sound_utils
+local gear_rattle = footstep_sounds and footstep_sounds.play_backpack_rattle and footstep_sounds.play_gear_rattle and footstep_sounds.play_cloth_sound
+local wpn_rattle = eft_rattle and eft_rattle.play_sprint_rattle_sound
+
 function actor_on_jump()
     if not enabled then return end
-    local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
 
-    local material = available_materials[get_material()]
+    local material = available_materials[get_material(debug)]
     if not material then return false end
     jump_sound = sound_object("jump\\jump_" .. material .. math.random(3))
     jump_sound:play(db.actor, 0, sound_object.s2d)
     jump_sound.volume = volume
 
     -- play gear rattle
-    if backpack_rattle then
-        footstep_sounds.play_backpack_rattle(outfit, volume)
-        footstep_sounds.play_gear_rattle(outfit, volume)
-        footstep_sounds.play_cloth_sound(outfit, volume)
+    if gear_rattle then
+        footstep_sounds.play_backpack_rattle(2)
+        footstep_sounds.play_gear_rattle(2)
+        footstep_sounds.play_cloth_sound(2)
     end
 
     -- play weapon rattle
-    if gamma then
+    if wpn_rattle then
         eft_rattle.play_sprint_rattle_sound(1, 1)
     end
 
     -- play exo servo sounds
-    local exo_class = oleh_sound_utils.exo_classes[outfit.class]
+    local exo_class = utils.exo_classes[utils.outfit.class]
     if servo_enabled and exo_class then
         local sound = sound_object(exo_jump .. exo_class)
         sound:play(db.actor, 0, sound_object.s2d)
-        sound.volume = servo_volume
+        sound.volume = servo_volume * 2
     end
 end
 
 function actor_on_land(landing_speed)
     if not enabled then return end
-    local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
 
     -- hack for speed set to 0 by fake geometry
     if landing_speed == 0 then landing_speed = 6.66 end
     print_dbg("landing_speed: %s", landing_speed)
 	if landing_speed > 2 then
-        local material = available_materials[get_material(true)]
+        local material = available_materials[get_material(debug)]
         if not material then return false end
         land_sound = sound_object("landing\\landing_" .. material .. math.random(3))
         land_sound:play(db.actor, 0, sound_object.s2d)
@@ -65,22 +66,22 @@ function actor_on_land(landing_speed)
 
     -- play gear rattle
     if footstep_sounds and footstep_sounds.play_backpack_rattle then
-        footstep_sounds.play_backpack_rattle(outfit, landing_speed / 5)
-        footstep_sounds.play_gear_rattle(outfit, 1)
-        footstep_sounds.play_cloth_sound(outfit, 1)
+        footstep_sounds.play_backpack_rattle(4 * (landing_speed / 5))
+        footstep_sounds.play_gear_rattle(2)
+        footstep_sounds.play_cloth_sound(2)
     end
 
     -- play weapon rattle
-    if eft_rattle and eft_rattle.gamma then
-        eft_rattle.play_aim_sound(landing_speed / 5, 1)
+    if wpn_rattle then
+        eft_rattle.play_sprint_rattle_sound(4 * (landing_speed / 5), 1)
     end
 
     -- play exo servo sounds
-    local exo_class = oleh_sound_utils.exo_classes[outfit.class]
+    local exo_class = utils.exo_classes[utils.outfit.class]
     if servo_enabled and exo_class then
         local sound = sound_object(exo_land .. exo_class)
         sound:play(db.actor, 0, sound_object.s2d)
-        sound.volume = servo_volume * (landing_speed / 5)
+        sound.volume = 2 * servo_volume * (landing_speed / 5)
     end
 end
 
@@ -161,7 +162,7 @@ function get_material(print)
         print_dbg("backup material: %s", final_material)
     end
 
-    return grass_patch and oleh_sound_utils.is_actually_grass and oleh_sound_utils.is_actually_grass(final_material) and "materials\\grass" or final_material
+    return grass_patch and utils.is_actually_grass(final_material) and "materials\\grass" or final_material
 end
 
 function on_option_change()
@@ -184,6 +185,9 @@ function on_option_change()
 end
 
 function on_game_start()
+    assert(oleh_sound_utils and oleh_sound_utils.VERSION and oleh_sound_utils.VERSION >= 5, "\n\n"..
+    "MovementSFX: oleh_sound_utils.script is missing or outdated, update MSIG (Miscellaneous Sound Improvements)\nhttps://github.com/oleh5230/MSIG")
+
     RegisterScriptCallback("actor_on_jump", actor_on_jump)
     RegisterScriptCallback("actor_on_land", actor_on_land)
     RegisterScriptCallback("on_option_change", on_option_change)

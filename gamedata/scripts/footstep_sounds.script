@@ -12,10 +12,10 @@ local servo_volume = 0.5
 local servo_legacy = false
 local ice_patch = false
 local grass_patch = false
+
+local utils = oleh_sound_utils
 local exo_path = servo_legacy and "exo_legacy\\servo_exo_walk_" or "exo\\servo_exo_walk_"
 
--- number of backpack rattle sound files (samples)
-backpack_rattle_limit = 10
 -- extra sounds per outfit class
 extra_sounds = {
     ["default"]             = {"cloth\\cloth_", "gear_rattle\\gear_rattle_"},
@@ -44,60 +44,40 @@ limit = {
 
     ["cloth\\cloth_"] = 6,
     ["gear_rattle\\gear_rattle_"] = 6,
-}
-
-count = {
-    -- ["run_"] = 1,
-    -- ["sprint_"] = 1,
-    -- ["walk_"] = 1,
-    -- ["prone_"] = 1,
-    ["metal_hand-0"] = 1,
-    ["metal_foot-0"] = 1,
-    ["wood_hand-0"] = 1,
-    ["wood_foot-0"] = 1,
-    ["n_"] = 1,
-
-    ["cloth\\cloth_"] = 1,
-    ["gear_rattle\\gear_rattle_"] = 1,
+    ["backpack\\backpack_rattle"] = 10
 }
 
 -- create sample queues to mitigate the issue of same sample playing multiple time in a row
-queues = {
-    -- ["run_"] = {},
-    -- ["sprint_"] = {},
-    -- ["walk_"] = {},
-    -- ["prone_"] = {},
-    ["metal_hand-0"] = {},
-    ["metal_foot-0"] = {},
-    ["wood_hand-0"] = {},
-    ["wood_foot-0"] = {},
-    ["n_"] = {},
-
-    ["cloth\\cloth_"] = {},
-    ["gear_rattle\\gear_rattle_"] = {},
-}
-for k,v in pairs(queues) do
-    for i=1, limit[k] do
-        table.insert(queues[k], i)
+queues = {}
+count = {}
+function init()
+    for k,v in pairs(limit) do
+        queues[k] = {}
+        count[k] = 1
     end
-    shuffle_table(queues[k])
+    for k,v in pairs(queues) do
+        for i=1, limit[k] do
+            table.insert(queues[k], i)
+        end
+        shuffle_table(queues[k])
+    end
 end
 
 function actor_on_footstep(material, power, hud_view, flags)
     -- footstep callback is being sent upon landing (sometimes even twice)
-    if lang_tg and oleh_sound_utils.land_tg + 200 > time_global() then return end
+    if utils.land_tg + 200 > time_global() then return end
 
     --flags.ret_value = false -- uncomment to disable engine footstep sounds
-    if not step_enabled then return end
-    local outfit = oleh_sound_utils.get_outfit_params() or {id = nil, class = "default", weight = 10}
     local move_state, volume = get_move_state()
-    local _material = grass_patch and oleh_sound_utils.is_actually_grass(material) and available_materials["materials\\grass"]
+    local _material = grass_patch and utils.is_actually_grass(material) and available_materials["materials\\grass"]
     or available_materials[material] or available_materials["default"]
 
-    play_cloth_sound(outfit, volume)
-    play_gear_rattle(outfit, volume)
-    play_backpack_rattle(outfit, volume)
-    play_exo_servo_sound(outfit, volume)
+    play_backpack_rattle(volume)
+    play_exo_servo_sound(volume)
+
+    if not step_enabled then return end
+    play_cloth_sound(volume)
+    play_gear_rattle(volume)
 
     if move_state == "climb_" and play_ladder_sound(_material, volume) then
     -- callback can't detect 'water_radiation' material, leave water steps to engine
@@ -108,7 +88,7 @@ end
 
 function play_footstep_sound(material, volume)
     local sound = sound_object("footstep\\" .. "n_" .. material .. queues["n_"][count["n_"]])
-    print_dbg("footstep_sounds: %s, power: %s, volume: %s", "footstep\\" .. "n_" .. material .. queues["n_"][count["n_"]], power, volume * step_volume)
+    --print_dbg("footstep_sounds: %s, volume: %s", "footstep\\" .. "n_" .. material .. queues["n_"][count["n_"]], volume * step_volume)
     sound:play(db.actor, 0, sound_object.s2d)
     sound.volume = volume * step_volume
 
@@ -119,12 +99,12 @@ function play_footstep_sound(material, volume)
     end
 end
 
-function play_cloth_sound(outfit, volume)
-    local cloth = extra_sounds[outfit.class][1]
+function play_cloth_sound(volume)
+    local cloth = extra_sounds[utils.outfit.class][1] or extra_sounds["default"]
     if cloth then
         local sound = sound_object(cloth .. queues[cloth][count[cloth]])
         sound:play(db.actor, 0, sound_object.s2d)
-        sound.volume = step_volume * 0.5 * (volume and volume or 1)
+        sound.volume = step_volume * 0.5 * (volume or 1)
         --printf("%s, volume: %s", cloth .. queues[cloth][count[cloth]], sound.volume)
 
         count[cloth] = count[cloth] + 1
@@ -135,12 +115,12 @@ function play_cloth_sound(outfit, volume)
     end
 end
 
-function play_gear_rattle(outfit, volume)
-    local gear = extra_sounds[outfit.class][2]
+function play_gear_rattle(volume)
+    local gear = extra_sounds[utils.outfit.class][2] or extra_sounds["default"]
     if gear then
         local sound = sound_object(gear .. queues[gear][count[gear]])
         sound:play(db.actor, 0, sound_object.s2d)
-        sound.volume = step_volume * 0.5 * (volume and volume or 1)
+        sound.volume = step_volume * 0.5 * (volume or 1)
         --printf("%s, volume: %s", gear .. queues[gear][count[gear]], sound.volume)
 
         count[gear] = count[gear] + 1
@@ -151,25 +131,32 @@ function play_gear_rattle(outfit, volume)
     end
 end
 
-function play_backpack_rattle(outfit, volume)
+function play_backpack_rattle(volume)
     if gear_enabled then
         -- volume based on carry weight, excluding outfit weight
-        local weight = oleh_sound_utils.get_actor_total_weight() or 10
-        local weight_volume = weight and outfit.weight and clamp((weight - outfit.weight)/100, 0.25, 1) or 1
+        local backpack = "backpack\\backpack_rattle"
+        local weight = utils.get_actor_total_weight() or 10
+        local weight_volume = weight and utils.outfit.weight and clamp((weight - utils.outfit.weight)/100, 0.25, 1) or 1
 
-        local sound = sound_object("backpack\\stereo\\backpack_rattle_sprint" .. math.random(backpack_rattle_limit))
+        local sound = sound_object(backpack .. queues[backpack][count[backpack]])
         sound:play(db.actor, 0, sound_object.s3d)
-        sound.volume = weight_volume * gear_volume * 0.2 * (volume and volume or 1)
+        sound.volume = weight_volume * gear_volume * 0.2 * (volume or 1)
+
+        count[backpack] = count[backpack] + 1
+        if count[backpack] > limit[backpack] then
+            count[backpack] = 1
+            shuffle_table(queues[backpack])
+        end
     end
 end
 
 local exo_count = true
-function play_exo_servo_sound(outfit, volume)
-    local exo_class = oleh_sound_utils.exo_classes[outfit.class]
+function play_exo_servo_sound(volume)
+    local exo_class = utils.exo_classes[utils.outfit.class]
     if servo_enabled and exo_class then
         local sound = sound_object(exo_path .. exo_class .. (exo_count and 2 or 1))
         sound:play(db.actor, 0, sound_object.s2d)
-        sound.volume = servo_volume * (volume and volume or 1)
+        sound.volume = servo_volume * (volume or 1)
         exo_count = not exo_count
     end
 end
@@ -189,16 +176,16 @@ function play_ladder_sound(material, volume)
     local part = part_count and "foot-0" or "hand-0"
     local class = ladder_material .. part
 
+    local step_snd = sound_object("ladder\\" .. class .. queues[class][count[class]])
+    step_snd:play(db.actor, 0, sound_object.s2d)
+    step_snd.volume = step_volume * 2
+    part_count = not part_count
+
     count[class] = count[class] + 1
     if count[class] > limit[class] then
         count[class] = 1
         shuffle_table(queues[class])
     end
-
-    local step_snd = sound_object("ladder\\" .. class .. queues[class][count[class]])
-    step_snd:play(db.actor, 0, sound_object.s2d)
-    step_snd.volume = step_volume * 2
-    part_count = not part_count
 
     -- play ladder rattle sound effect
     --local detail_snd = sound_object("ladder\\" .. ray_material .. "detail_" .. "1")
@@ -291,10 +278,13 @@ function load_settings()
 end
 
 function on_game_start()
+    assert(oleh_sound_utils and oleh_sound_utils.VERSION and oleh_sound_utils.VERSION >= 5, "\n\n"..
+    "MovementSFX: oleh_sound_utils.script is missing or outdated, update MSIG (Miscellaneous Sound Improvements)\nhttps://github.com/oleh5230/MSIG")
+
     RegisterScriptCallback("actor_on_footstep", actor_on_footstep)
-    RegisterScriptCallback("actor_on_land", actor_on_land)
     RegisterScriptCallback("on_option_change", load_settings)
     load_settings()
+    init()
 end
 
 available_materials = {
