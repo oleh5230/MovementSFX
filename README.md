@@ -28,6 +28,7 @@ Only sound addons I use personally (excluding default GAMMA addons)
 - [S.T.A.L.K.E.R. 2 HoC - Soundscape](https://www.moddb.com/mods/stalker-anomaly/addons/stalker-2-hoc-ambience-overhaul-for-anomaly)
 - [Arrival](https://www.moddb.com/mods/stalker-anomaly/addons/arrival-anomalies)
 - [Oleh's Weapon Sounds](https://github.com/oleh5230/WSTFG)
+- [Oleh's NPC Footstep Sounds](https://github.com/oleh5230/NPC-footsteps)
 - [Ukrainian voices](https://www.moddb.com/addons/dxml-anomaly-ukrainian-voices)
 
 ## Known issues
