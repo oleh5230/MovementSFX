@@ -9,7 +9,7 @@ Consists of three parts:
 
 ## Installation
 *MovementSFX is included in GAMMA by default (2026.05.08 version), but GAMMA launcher pulls updates only on GAMMA update releases*
-1. Download the latest release archive *(do not extract it)*: `Code` -> `Download ZIP`
+1. Download the latest release archive *(do not extract it)*: <https://github.com/oleh5230/MovementSFX/releases>
 2. In Mod Organizer, go to `File` > `Install Mod...` (or press `Ctrl` + `M`)
 3. Select the downloaded archive
 4. Enable the installed mod
@@ -28,6 +28,7 @@ Only sound addons I use personally (excluding default GAMMA addons)
 - [S.T.A.L.K.E.R. 2 HoC - Soundscape](https://www.moddb.com/mods/stalker-anomaly/addons/stalker-2-hoc-ambience-overhaul-for-anomaly)
 - [Arrival](https://www.moddb.com/mods/stalker-anomaly/addons/arrival-anomalies)
 - [Oleh's Weapon Sounds](https://github.com/oleh5230/WSTFG)
+- [Oleh's NPC Footstep Sounds](https://github.com/oleh5230/NPC-footsteps)
 - [Ukrainian voices](https://www.moddb.com/addons/dxml-anomaly-ukrainian-voices)
 
 ## Known issues
