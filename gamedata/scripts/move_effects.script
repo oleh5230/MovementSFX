@@ -139,22 +139,6 @@ function play_sound(movement, volume)
         shuffle_table(queues[movement])
     end
     --print_dbg("movement_sounds // movement: %s volume: %s", movement, volume)
-
-    --[[ apparently can cause crashes
-    -- Exo servo sounds
-    if exo_servo_sounds then
-        if exo_servo_sounds.exo_flag or
-        -- Powered Exos patch
-        exo_servo_sounds.exo_flag == nil and exo_servo_sounds:check_exo_suit() then
-            local num = movement == "stand" and 2 or movement == "crouch" and 1 or nil
-            if num then
-                sound = sound_object("exo-servo\\" .. exo_servo_sounds.exo_type .. "_servo_exo_walk" .. num)
-                sound:play(db.actor, 0, sound_object.s2d)
-                sound.volume = volume * exo_servo_sounds.volume_walk * 0.5
-            end
-        end
-    end
-    ]]
 end
 
 function play_exo_servo_sound(volume)

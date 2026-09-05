@@ -31,9 +31,9 @@ function actor_on_jump()
 
     -- play gear rattle
     if gear_rattle then
-        footstep_sounds.play_backpack_rattle(2)
-        footstep_sounds.play_gear_rattle(2)
-        footstep_sounds.play_cloth_sound(2)
+        footstep_sounds.play_backpack_rattle(2, "sprint")
+        footstep_sounds.play_gear_rattle(2, "sprint")
+        footstep_sounds.play_cloth_sound(2, "sprint")
     end
 
     -- play weapon rattle
@@ -56,24 +56,25 @@ function actor_on_land(landing_speed)
     -- hack for speed set to 0 by fake geometry
     if landing_speed == 0 then landing_speed = 6.66 end
     print_dbg("landing_speed: %s", landing_speed)
-	if landing_speed > 2 then
-        local material = available_materials[get_material(debug)]
-        if not material then return false end
-        land_sound = sound_object("landing\\landing_" .. material .. math.random(3))
-        land_sound:play(db.actor, 0, sound_object.s2d)
-        land_sound.volume = volume * (landing_speed / 5)
-    end
+	if landing_speed < 2 then return end
+
+    local speed_mod = clamp(landing_speed / 5, 0, 4)
+    local material = available_materials[get_material(debug)]
+    if not material then return false end
+    land_sound = sound_object("landing\\landing_" .. material .. math.random(3))
+    land_sound:play(db.actor, 0, sound_object.s2d)
+    land_sound.volume = volume * speed_mod
 
     -- play gear rattle
     if footstep_sounds and footstep_sounds.play_backpack_rattle then
-        footstep_sounds.play_backpack_rattle(4 * (landing_speed / 5))
+        footstep_sounds.play_backpack_rattle(4 * speed_mod)
         footstep_sounds.play_gear_rattle(2)
         footstep_sounds.play_cloth_sound(2)
     end
 
     -- play weapon rattle
     if wpn_rattle then
-        eft_rattle.play_sprint_rattle_sound(4 * (landing_speed / 5), 1)
+        eft_rattle.play_sprint_rattle_sound(4 * speed_mod, 1)
     end
 
     -- play exo servo sounds
@@ -81,7 +82,7 @@ function actor_on_land(landing_speed)
     if servo_enabled and exo_class then
         local sound = sound_object(exo_land .. exo_class)
         sound:play(db.actor, 0, sound_object.s2d)
-        sound.volume = 2 * servo_volume * (landing_speed / 5)
+        sound.volume = 2 * servo_volume * speed_mod
     end
 end
 
@@ -104,7 +105,7 @@ local function ray_cast(pos, dir, range, visualize)
         ignore_object = db.actor,
         visualize = debug and visualize or false,
     })
-    return ray:get(pos, dir).result.material_name
+    return ray:get(pos, dir).result
 end
 
 -- vertical x-shaped raycast pattern;
@@ -125,14 +126,20 @@ function get_material(print)
     local ray_hits = {}
 
     for k,v in pairs(ray_cast_offsets) do
-        material = ray_cast(vector():set(pos.x + v[1], pos.y + v[2], pos.z + v[3]), vector():set(0, -1, 0), v[4], print)
+        local ray = ray_cast(vector():set(pos.x + v[1], pos.y + v[2], pos.z + v[3]), vector():set(0, -1, 0), v[4], print)
+        material = ray.material_name
 
+        -- dead bodies return water material somehow
+        if ray.object and ray.object.clsid == 35 then
+            material = "materials\\dirt"
         -- short circuit if centre ray hits water
-        if k == 1 and water_materials[material] then return material end
+        elseif k == 1 and water_materials[material] then
+            return "materials\\water"
+        end
 
         -- inversed ray cast to hit surfaces covered by fake geometry
         if fake_materials[material] then
-            local inv_material = ray_cast(vector():set(pos.x, pos.y - 0.5, pos.z), vector():set(0, 1, 0), 0.5, print)
+            local inv_material = ray_cast(vector():set(pos.x, pos.y - 0.5, pos.z), vector():set(0, 1, 0), 0.5, print).material_name
             if inv_material then material = inv_material end
         end
 
@@ -146,23 +153,25 @@ function get_material(print)
         end
     end
 
-    -- if print then
-    --     for k,v in pairs(ray_hits) do
-    --         print_dbg("raycast result: %s %s", k,v)
-    --     end
-    -- end
+    if print then
+        for k,v in pairs(ray_hits) do
+            print_dbg("raycast result: %s %s", k,v)
+        end
+    end
 
     local final_material = get_highest_value(ray_hits)
     if not final_material then
         -- backup horizontal plus-shaped ray cast
-        final_material = ray_cast(vector():set(pos.x + 0.225, pos.y - 0.001, pos.z), vector():set(-1, 0, 0), 0.45, debug)
+        final_material = ray_cast(vector():set(pos.x + 0.225, pos.y - 0.001, pos.z), vector():set(-1, 0, 0), 0.45, debug).material_name
         if not final_material then
-            final_material = ray_cast(vector():set(pos.x, pos.y - 0.001, pos.z + 0.225), vector():set(0, 0, -1), 0.45, debug)
+            final_material = ray_cast(vector():set(pos.x, pos.y - 0.001, pos.z + 0.225), vector():set(0, 0, -1), 0.45, debug).material_name
         end
         print_dbg("backup material: %s", final_material)
     end
 
-    return grass_patch and utils.is_actually_grass(final_material) and "materials\\grass" or final_material
+    return grass_patch and utils.is_actually_grass(final_material) and "materials\\grass"
+    or final_material == "materials\\fake" and level.name() == "k00_marsh" and "materials\\wooden_board"
+    or final_material
 end
 
 function on_option_change()
@@ -207,49 +216,49 @@ function print_dbg(txt, ...)
 end
 
 available_materials = {
-    ["default"]                        = "dirt_",
-    ["materials\\asphalt"]             = "concrete_", -- ÐÑÑ„Ð°Ð»ÑŒÑ‚
-    ["materials\\bricks"]              = "concrete_", -- ÐšÐ¸Ñ€Ð¿Ð¸Ñ‡Ð½Ð°Ñ ÑÑ‚ÐµÐ½Ð°
-    ["materials\\bush"]                = "grass_", -- ÐšÑƒÑÑ‚Ñ‹, ÐºÑ€Ð¾Ð½Ð° Ð´ÐµÑ€ÐµÐ²ÑŒÐµÐ², ÐºÐ°Ð¼Ñ‹ÑˆÑ‹, Ð»Ð¸ÑÑ‚ÑŒÑ 
-    ["materials\\bush_sux"]            = "grass_", -- ÐšÑƒÑÑ‚Ñ‹, ÐºÑ€Ð¾Ð½Ð° Ð´ÐµÑ€ÐµÐ²ÑŒÐµÐ², ÐºÐ°Ð¼Ñ‹ÑˆÑ‹, Ð»Ð¸ÑÑ‚ÑŒÑ ÑÑƒÑ…Ð¸Ðµ
-    ["materials\\cloth"]               = "dirt_", -- Ð¢ÐºÐ°Ð½ÑŒ
-    ["materials\\concrete"]            = "concrete_", -- ÐœÐ¾Ð½Ð¾Ð»Ð¸Ñ‚Ð½Ñ‹Ð¹ Ð±ÐµÑ‚Ð¾Ð½
-    ["materials\\death"]               = "dirt_", -- Ð¡Ð¼ÐµÑ€Ñ‚Ð¾Ð½Ð¾ÑÐ½Ð°Ñ Ð·ÐµÐ¼Ð»Ñ (Ð½ÐµÑÑ‚Ð°Ð½Ð´Ð°Ñ€Ñ‚Ð½Ñ‹Ð¹ Ð¼Ð°Ñ‚ÐµÑ€Ð¸Ð°Ð»)
-    ["materials\\dirt"]                = "dirt_", -- ÐœÐ¾ÐºÑ€Ð°Ñ Ð³Ñ€ÑÐ·ÑŒ, Ð±Ð¾Ð»Ð¾Ñ‚Ð¾ 
-    ["materials\\earth"]               = "dirt_", -- Ð¡ÑƒÑ…Ð°Ñ Ñ‚Ð²ÐµÑ€Ð´Ð°Ñ Ð·ÐµÐ¼Ð»Ñ (ÑÑ‚Ð°Ð½Ð´Ð°Ñ€Ñ‚Ð½Ñ‹Ð¹ Ð¼Ð°Ñ‚ÐµÑ€Ð¸Ð°Ð»)
-    ["materials\\earth_death"]         = "dirt_", -- Ð¡ÑƒÑ…Ð°Ñ Ñ‚Ð²ÐµÑ€Ð´Ð°Ñ Ð·ÐµÐ¼Ð»Ñ (Ð½ÐµÑÑ‚Ð°Ð½Ð´Ð°Ñ€Ñ‚Ð½Ñ‹Ð¹ Ð¼Ð°Ñ‚ÐµÑ€Ð¸Ð°Ð»)
-    ["materials\\earth_slide"]         = "dirt_", -- Ð¡ÑƒÑ…Ð°Ñ Ñ‚Ð²ÐµÑ€Ð´Ð°Ñ Ð·ÐµÐ¼Ð»Ñ (ÑÑ‚Ð°Ð½Ð´Ð°Ñ€Ñ‚Ð½Ñ‹Ð¹ Ð¼Ð°Ñ‚ÐµÑ€Ð¸Ð°Ð»)
-    ["materials\\flooring_tile"]       = "concrete_", -- ÐŸÐ»Ð¸Ñ‚ÐºÐ°, ÐºÐ°Ñ„ÐµÐ»ÑŒ
-    ["materials\\glass"]               = "concrete_", -- Ð¡Ñ‚ÐµÐºÐ»Ð¾
-    ["materials\\grass"]               = "grass_", -- Ð—ÐµÐ¼Ð»Ñ, Ð¿Ð¾ÐºÑ€Ñ‹Ñ‚Ð°Ñ Ñ‚Ñ€Ð°Ð²Ð¾Ð¹
-    ["materials\\gravel"]              = "gravel_", -- Ð“Ñ€Ð°Ð²Ð¸Ð¹
-    ["materials\\metal"]               = "metal_", -- ÐœÐ¾Ð½Ð¾Ð»Ð¸Ñ‚Ð½Ñ‹Ð¹ Ð¼ÐµÑ‚Ð°Ð», Ñ‚Ð¾Ð»ÑÑ‚Ñ‹Ð¹ ÐºÑƒÑÐ¾Ðº Ð¶ÐµÐ»ÐµÐ·Ð°, Ñ‚Ð°Ð½Ðº
-    ["materials\\metal_pipe"]          = "metal_", -- ÐœÐµÑ‚Ð°Ð»Ð»Ð¸Ñ‡ÐµÑÐºÐ°Ñ Ñ‚Ñ€ÑƒÐ±Ð°
-    ["materials\\metal_plate"]         = "metal_", --"metal_thin_", -- ÐœÐµÑ‚Ð°Ð»Ð»Ð¸Ñ‡ÐµÑÐºÐ°Ñ Ð¿Ð»Ð°ÑÑ‚Ð¸Ð½Ð° (Ñ‚Ð¾Ð»Ñ‰Ð¸Ð½Ð° 2-5ÑÐ¼), Ð¡Ñ‚ÑƒÐ¿ÐµÐ½ÑŒÐºÐ¸
-    ["materials\\sand"]                = "gravel_", -- ÐŸÐµÑÐ¾Ðº, Ð½Ð°ÑÑ‹Ð¿ÑŒ
-    ["materials\\setka_rabica"]        = "metal_", -- Ð¡ÐµÑ‚ÐºÐ° Ñ€Ð°Ð±Ð¸Ñ†Ð°, ÐºÐ¾Ð»ÑŽÑ‡Ð°Ñ Ð¿Ñ€Ð¾Ð²Ð¾Ð»Ð¾ÐºÐ°
-    ["materials\\shifer"]              = "concrete_", -- Ð¨Ð¸Ñ„ÐµÑ€
-    ["materials\\stucco"]              = "concrete_", -- ÑˆÑ‚ÑƒÐºÐ°Ñ‚ÑƒÑ€ÐºÐ°
-    ["materials\\tin"]                 = "metal_", --"metal_thin_", -- Ð–ÐµÑÑ‚ÑŒ, ÐºÑ€Ñ‹ÑˆÐ° Ð´Ð¾Ð¼Ð¾Ð²
-    ["materials\\tree_trunk"]          = "wood_", -- Ð”ÐµÑ€ÐµÐ²Ð¾ (ÑÑ‚Ð²Ð¾Ð»)
-    ["materials\\water"]               = "water_", -- Ð’Ð¾Ð´Ð°
-    ["materials\\water_radiation"]     = "water_", -- Ð’Ð¾Ð´Ð°
-    ["materials\\wood"]                = "wood_", -- Ð”ÐµÑ€ÐµÐ²ÑÐ½Ð½Ð°Ñ Ð¿Ð¾Ð²ÐµÑ€Ñ…Ð½Ð¾ÑÑ‚ÑŒ, Ð´ÐµÑ€ÐµÐ²ÑÐ½Ð½Ñ‹Ð¹ Ð¿Ð¾Ð», Ð´ÐµÑ€ÐµÐ²ÑÐ½Ð½Ñ‹Ðµ ÑÑ‚ÑƒÐ¿ÐµÐ½ÑŒÐºÐ¸
-    ["materials\\wooden_board"]        = "wood_", -- Ð”ÐµÑ€ÐµÐ²ÑÐ½Ð½Ð°Ñ Ð´Ð¾ÑÐºÐ° (Ñ‚Ð¾Ð»Ñ‰Ð¸Ð½Ð° 2-5ÑÐ¼), Ð´ÐµÑ€ÐµÐ²ÑÐ½Ð½Ñ‹Ð¹ Ð²Ð°Ð³Ð¾Ð½, ÑÑ‰Ð¸Ðº
-    ["materials\\occ"]                 = "dirt_", -- ÐœÐ°Ñ‚ÐµÑ€Ð¸Ð°Ð» Ð´Ð»Ñ Ð¾ÐºÐ»ÑŽÐ¶ÐµÐ½ Ð³ÐµÐ¾Ð¼ÐµÑ‚Ñ€Ð¸Ð¸
-    ["materials\\fake"]                = "dirt_", -- ÐœÐ°Ñ‚ÐµÑ€Ð¸Ð°Ð» Ð´Ð»Ñ ÐºÐ¾Ð»Ð¸Ð¶ÐµÐ½Ð° (Ð½ÐµÑ‚ Ð·Ð²ÑƒÐºÐ°, ÑÐ»ÐµÐ´Ð¾Ð² Ð¾Ñ‚ Ð¿ÑƒÐ»ÑŒ, Ñ‚ÐµÐ½ÐµÐ¹)
-    ["materials\\fake_ladders"]        = "dirt_", -- Ð½ÐµÐ²Ð¸Ð´Ð¸Ð¼Ð°Ñ Ð»ÐµÑÑ‚Ð½Ð¸Ñ†Ð°
-    ["materials\\fake_ladders_woods"]  = "dirt_", -- Ð½ÐµÐ²Ð¸Ð´Ð¸Ð¼Ð°Ñ Ð´ÐµÑ€ÐµÐ²ÑÐ½Ð½Ð°Ñ Ð»ÐµÑÑ‚Ð½Ð¸Ñ†Ð°
-    ["materials\\fake_slide"]          = "dirt_", -- ÐœÐ°Ñ‚ÐµÑ€Ð¸Ð°Ð» Ð´Ð»Ñ ÐºÐ¾Ð»Ð¸Ð¶ÐµÐ½Ð° (Ð½ÐµÑ‚ Ð·Ð²ÑƒÐºÐ°, ÑÐ»ÐµÐ´Ð¾Ð² Ð¾Ñ‚ Ð¿ÑƒÐ»ÑŒ, Ñ‚ÐµÐ½ÐµÐ¹)
+    ["default"]                        = "concrete_", -- primarily used in Dead City
+    ["materials\\asphalt"]             = "concrete_", -- Àñôàëüò
+    ["materials\\bricks"]              = "concrete_", -- Êèðïè÷íàÿ ñòåíà
+    ["materials\\bush"]                = "grass_", -- Êóñòû, êðîíà äåðåâüåâ, êàìûøû, ëèñòüÿ 
+    ["materials\\bush_sux"]            = "grass_", -- Êóñòû, êðîíà äåðåâüåâ, êàìûøû, ëèñòüÿ ñóõèå
+    ["materials\\cloth"]               = "dirt_", -- Òêàíü
+    ["materials\\concrete"]            = "concrete_", -- Ìîíîëèòíûé áåòîí
+    ["materials\\death"]               = "dirt_", -- Ñìåðòîíîñíàÿ çåìëÿ (íåñòàíäàðòíûé ìàòåðèàë)
+    ["materials\\dirt"]                = "dirt_", -- Ìîêðàÿ ãðÿçü, áîëîòî 
+    ["materials\\earth"]               = "dirt_", -- Ñóõàÿ òâåðäàÿ çåìëÿ (ñòàíäàðòíûé ìàòåðèàë)
+    ["materials\\earth_death"]         = "dirt_", -- Ñóõàÿ òâåðäàÿ çåìëÿ (íåñòàíäàðòíûé ìàòåðèàë)
+    ["materials\\earth_slide"]         = "dirt_", -- Ñóõàÿ òâåðäàÿ çåìëÿ (ñòàíäàðòíûé ìàòåðèàë)
+    ["materials\\flooring_tile"]       = "concrete_", -- Ïëèòêà, êàôåëü
+    ["materials\\glass"]               = "concrete_", -- Ñòåêëî
+    ["materials\\grass"]               = "grass_", -- Çåìëÿ, ïîêðûòàÿ òðàâîé
+    ["materials\\gravel"]              = "gravel_", -- Ãðàâèé
+    ["materials\\metal"]               = "metal_solid_", -- Ìîíîëèòíûé ìåòàë, òîëñòûé êóñîê æåëåçà, òàíê
+    ["materials\\metal_pipe"]          = "metal_solid_", -- Ìåòàëëè÷åñêàÿ òðóáà
+    ["materials\\metal_plate"]         = "metal_", --"metal_thin_", -- Ìåòàëëè÷åñêàÿ ïëàñòèíà (òîëùèíà 2-5ñì), Ñòóïåíüêè
+    ["materials\\sand"]                = "gravel_", -- Ïåñîê, íàñûïü
+    ["materials\\setka_rabica"]        = "metal_solid_", -- Ñåòêà ðàáèöà, êîëþ÷àÿ ïðîâîëîêà
+    ["materials\\shifer"]              = "slate_", -- Øèôåð
+    ["materials\\stucco"]              = "concrete_", -- øòóêàòóðêà
+    ["materials\\tin"]                 = "metal_", --"metal_thin_", -- Æåñòü, êðûøà äîìîâ
+    ["materials\\tree_trunk"]          = "wood_", -- Äåðåâî (ñòâîë)
+    ["materials\\water"]               = "water_", -- Âîäà
+    ["materials\\water_radiation"]     = "water_", -- Âîäà
+    ["materials\\wood"]                = "wood_", -- Äåðåâÿííàÿ ïîâåðõíîñòü, äåðåâÿííûé ïîë, äåðåâÿííûå ñòóïåíüêè
+    ["materials\\wooden_board"]        = "wood_", -- Äåðåâÿííàÿ äîñêà (òîëùèíà 2-5ñì), äåðåâÿííûé âàãîí, ÿùèê
+    ["materials\\occ"]                 = "dirt_", -- Ìàòåðèàë äëÿ îêëþæåí ãåîìåòðèè
+    ["materials\\fake"]                = "dirt_", -- Ìàòåðèàë äëÿ êîëèæåíà (íåò çâóêà, ñëåäîâ îò ïóëü, òåíåé)
+    ["materials\\fake_ladders"]        = "dirt_", -- íåâèäèìàÿ ëåñòíèöà
+    ["materials\\fake_ladders_woods"]  = "dirt_", -- íåâèäèìàÿ äåðåâÿííàÿ ëåñòíèöà
+    ["materials\\fake_slide"]          = "dirt_", -- Ìàòåðèàë äëÿ êîëèæåíà (íåò çâóêà, ñëåäîâ îò ïóëü, òåíåé)
 }
 
 fake_materials = {
-    ["materials\\death"]               = true, -- Ð¡Ð¼ÐµÑ€Ñ‚Ð¾Ð½Ð¾ÑÐ½Ð°Ñ Ð·ÐµÐ¼Ð»Ñ (Ð½ÐµÑÑ‚Ð°Ð½Ð´Ð°Ñ€Ñ‚Ð½Ñ‹Ð¹ Ð¼Ð°Ñ‚ÐµÑ€Ð¸Ð°Ð»)
-    ["materials\\occ"]                 = true, -- ÐœÐ°Ñ‚ÐµÑ€Ð¸Ð°Ð» Ð´Ð»Ñ Ð¾ÐºÐ»ÑŽÐ¶ÐµÐ½ Ð³ÐµÐ¾Ð¼ÐµÑ‚Ñ€Ð¸Ð¸
-    ["materials\\fake"]                = true, -- ÐœÐ°Ñ‚ÐµÑ€Ð¸Ð°Ð» Ð´Ð»Ñ ÐºÐ¾Ð»Ð¸Ð¶ÐµÐ½Ð° (Ð½ÐµÑ‚ Ð·Ð²ÑƒÐºÐ°, ÑÐ»ÐµÐ´Ð¾Ð² Ð¾Ñ‚ Ð¿ÑƒÐ»ÑŒ, Ñ‚ÐµÐ½ÐµÐ¹)
-    ["materials\\fake_ladders"]        = true, -- Ð½ÐµÐ²Ð¸Ð´Ð¸Ð¼Ð°Ñ Ð»ÐµÑÑ‚Ð½Ð¸Ñ†Ð°
-    ["materials\\fake_ladders_woods"]  = true, -- Ð½ÐµÐ²Ð¸Ð´Ð¸Ð¼Ð°Ñ Ð´ÐµÑ€ÐµÐ²ÑÐ½Ð½Ð°Ñ Ð»ÐµÑÑ‚Ð½Ð¸Ñ†Ð°
-    ["materials\\fake_slide"]          = true, -- ÐœÐ°Ñ‚ÐµÑ€Ð¸Ð°Ð» Ð´Ð»Ñ ÐºÐ¾Ð»Ð¸Ð¶ÐµÐ½Ð° (Ð½ÐµÑ‚ Ð·Ð²ÑƒÐºÐ°, ÑÐ»ÐµÐ´Ð¾Ð² Ð¾Ñ‚ Ð¿ÑƒÐ»ÑŒ, Ñ‚ÐµÐ½ÐµÐ¹)
+    ["materials\\death"]               = true, -- Ñìåðòîíîñíàÿ çåìëÿ (íåñòàíäàðòíûé ìàòåðèàë)
+    ["materials\\occ"]                 = true, -- Ìàòåðèàë äëÿ îêëþæåí ãåîìåòðèè
+    ["materials\\fake"]                = true, -- Ìàòåðèàë äëÿ êîëèæåíà (íåò çâóêà, ñëåäîâ îò ïóëü, òåíåé)
+    ["materials\\fake_ladders"]        = true, -- íåâèäèìàÿ ëåñòíèöà
+    ["materials\\fake_ladders_woods"]  = true, -- íåâèäèìàÿ äåðåâÿííàÿ ëåñòíèöà
+    ["materials\\fake_slide"]          = true, -- Ìàòåðèàë äëÿ êîëèæåíà (íåò çâóêà, ñëåäîâ îò ïóëü, òåíåé)
 }
 
 water_materials = {
