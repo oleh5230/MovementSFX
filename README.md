@@ -20,7 +20,7 @@ Consists of three parts:
 **Disabling default GAMMA sound addons is not required**
 
 ## Dependencies
-[MSIG](https://github.com/oleh5230/MSIG) (version 2026.08.10 or newer)
+[MSIG](https://github.com/oleh5230/MSIG) (version 2026.09.05 or newer)
 
 ## Recommended addons
 Only sound addons I use personally (excluding default GAMMA addons)
