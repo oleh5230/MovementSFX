@@ -19,13 +19,15 @@ local exo_land = servo_legacy and "exo_legacy\\servo_exo_land_" or "exo\\servo_e
 local utils = oleh_sound_utils
 local gear_rattle = footstep_sounds and footstep_sounds.play_backpack_rattle and footstep_sounds.play_gear_rattle and footstep_sounds.play_cloth_sound
 local wpn_rattle = eft_rattle and eft_rattle.play_sprint_rattle_sound
+local ssfx = ssfx_rain_footsteps and ssfx_rain_footsteps.module_installed
 
 function actor_on_jump()
     if not enabled then return end
 
-    local material = available_materials[get_material(debug)]
-    if not material then return false end
-    jump_sound = sound_object("jump\\jump_" .. material .. math.random(3))
+    local material = get_material(debug)
+    local _material = available_materials[material]
+    if not _material then return false end
+    jump_sound = sound_object("jump\\jump_" .. _material .. math.random(3))
     jump_sound:play(db.actor, 0, sound_object.s2d)
     jump_sound.volume = volume
 
@@ -38,7 +40,12 @@ function actor_on_jump()
 
     -- play weapon rattle
     if wpn_rattle then
-        eft_rattle.play_sprint_rattle_sound(1, 1)
+        eft_rattle.play_sprint_rattle_sound(2, 1)
+    end
+
+    -- play puddle splash
+    if ssfx and puddle_materials[material] then
+        ssfx_rain_footsteps.actor_on_jump()
     end
 
     -- play exo servo sounds
@@ -59,15 +66,16 @@ function actor_on_land(landing_speed)
 	if landing_speed < 2 then return end
 
     local speed_mod = clamp(landing_speed / 5, 0, 4)
-    local material = available_materials[get_material(debug)]
-    if not material then return false end
-    land_sound = sound_object("landing\\landing_" .. material .. math.random(3))
+    local material = get_material(debug)
+    local _material = available_materials[material]
+    if not _material then return false end
+    land_sound = sound_object("landing\\landing_" .. _material .. math.random(3))
     land_sound:play(db.actor, 0, sound_object.s2d)
     land_sound.volume = volume * speed_mod
 
     -- play gear rattle
     if footstep_sounds and footstep_sounds.play_backpack_rattle then
-        footstep_sounds.play_backpack_rattle(4 * speed_mod)
+        footstep_sounds.play_backpack_rattle(4 * speed_mod, "sprint")
         footstep_sounds.play_gear_rattle(2)
         footstep_sounds.play_cloth_sound(2)
     end
@@ -77,12 +85,26 @@ function actor_on_land(landing_speed)
         eft_rattle.play_sprint_rattle_sound(4 * speed_mod, 1)
     end
 
+    -- play puddle splash
+    if ssfx and puddle_materials[material] then
+        ssfx_rain_footsteps.actor_on_land()
+    end
+
     -- play exo servo sounds
     local exo_class = utils.exo_classes[utils.outfit.class]
     if servo_enabled and exo_class then
         local sound = sound_object(exo_land .. exo_class)
         sound:play(db.actor, 0, sound_object.s2d)
         sound.volume = 2 * servo_volume * speed_mod
+    end
+end
+
+-- in Swamps fake is used primarily for wood bridges
+function actor_on_first_update()
+    if level.name() == "k00_marsh" then
+        available_materials["materials\\fake"] = "wood_"
+    else
+        available_materials["materials\\fake"] = "dirt_"
     end
 end
 
@@ -170,7 +192,6 @@ function get_material(print)
     end
 
     return grass_patch and utils.is_actually_grass(final_material) and "materials\\grass"
-    or final_material == "materials\\fake" and level.name() == "k00_marsh" and "materials\\wooden_board"
     or final_material
 end
 
@@ -199,6 +220,7 @@ function on_game_start()
 
     RegisterScriptCallback("actor_on_jump", actor_on_jump)
     RegisterScriptCallback("actor_on_land", actor_on_land)
+    RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
     RegisterScriptCallback("on_option_change", on_option_change)
 	on_option_change()
 
@@ -235,7 +257,7 @@ available_materials = {
     ["materials\\metal"]               = "metal_solid_", -- Монолитный метал, толстый кусок железа, танк
     ["materials\\metal_pipe"]          = "metal_solid_", -- Металлическая труба
     ["materials\\metal_plate"]         = "metal_", --"metal_thin_", -- Металлическая пластина (толщина 2-5см), Ступеньки
-    ["materials\\sand"]                = "gravel_", -- Песок, насыпь
+    ["materials\\sand"]                = "dirt_", -- Песок, насыпь
     ["materials\\setka_rabica"]        = "metal_solid_", -- Сетка рабица, колючая проволока
     ["materials\\shifer"]              = "slate_", -- Шифер
     ["materials\\stucco"]              = "concrete_", -- штукатурка
@@ -264,4 +286,15 @@ fake_materials = {
 water_materials = {
     ["materials\\water"]               = true,
     ["materials\\water_radiation"]     = true,
+}
+
+puddle_materials = {
+    ["default"]                        = true, -- primarily used in Dead City
+    ["materials\\asphalt"]             = true, -- Асфальт
+    ["materials\\bush"]                = true, -- Кусты, крона деревьев, камышы, листья 
+    ["materials\\bush_sux"]            = true, -- Кусты, крона деревьев, камышы, листья сухие
+    ["materials\\concrete"]            = true, -- Монолитный бетон
+    ["materials\\dirt"]                = true, -- Мокрая грязь, болото 
+    ["materials\\earth"]               = true, -- Сухая твердая земля (стандартный материал)
+    ["materials\\grass"]               = true, -- Земля, покрытая травой
 }

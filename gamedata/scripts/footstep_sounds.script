@@ -1,5 +1,6 @@
 -- plays player footstep sounds - oleh5230, 17.08.25
 -- Last edit: 12.05.25
+-- credits: ascii1457 - get_move_state()
 
 local debug = false
 
@@ -17,6 +18,7 @@ local grass_patch = false
 
 local utils = oleh_sound_utils
 local exo_path = servo_legacy and "exo_legacy\\servo_exo_walk_" or "exo\\servo_exo_walk_"
+local ssfx = ssfx_rain_footsteps and ssfx_rain_footsteps.module_installed
 
 -- number of footstep sound files (samples) per class
 limit = {
@@ -28,7 +30,8 @@ limit = {
     ["cloth\\cloth_walk"] = 9,
     ["cloth\\cloth_sprint"] = 9,
     ["gear_rattle\\gear_rattle"] = 6,
-    ["backpack\\backpack_rattle"] = 16,
+    ["backpack\\backpack_sprint"] = 16,
+    ["backpack\\backpack_walk"] = 16,
 
     ["hand-0"] = 6,
     ["foot-0"] = 6,
@@ -43,11 +46,11 @@ function actor_on_footstep(material, power, hud_view, flags)
     local _material = grass_patch and utils.is_actually_grass(material) and available_materials["materials\\grass"]
     or available_materials[material] or available_materials["default"]
 
-    play_backpack_rattle(volume, move_state)
-    play_exo_servo_sound(volume, move_state)
-
+    -- play extra gear sounds
     play_cloth_sound(volume, move_state)
     play_gear_rattle(volume, move_state)
+    play_backpack_rattle(volume, move_state)
+    play_exo_servo_sound(volume, move_state)
 
     if not step_enabled then return end
 
@@ -55,6 +58,10 @@ function actor_on_footstep(material, power, hud_view, flags)
     -- callback can't detect 'water_radiation' material, leave water steps to engine
     elseif _material ~= "water_" then
         play_footstep_sound(_material, volume, move_state)
+        -- play puddle splash
+        if ssfx and puddle_materials[material] then
+            ssfx_rain_footsteps.actor_on_footstep()
+        end
     end
 end
 
@@ -109,15 +116,15 @@ function play_gear_rattle(volume, move_state)
 end
 
 local last_bp = 0
-local backpack = "backpack\\backpack_rattle"
 function play_backpack_rattle(volume, move_state)
     if not backpack_enabled then return end
+    local backpack = "backpack\\backpack_" .. (move_state or "walk")
 
     local roll = math.random(limit[backpack])
-    -- if roll == last_bp then
-    --     roll = last_bp % (limit[backpack] + 1)
-    -- end
-    -- last_bp = roll
+    if roll == last_bp then
+        roll = last_bp % (limit[backpack] + 1)
+    end
+    last_bp = roll
 
     -- volume based on carry weight
     local weight = utils.total_weight or 10
@@ -127,7 +134,7 @@ function play_backpack_rattle(volume, move_state)
 
     local sound = sound_object(backpack .. roll)
     sound:play(db.actor, 0, sound_object.s2d)
-    sound.volume = weight_volume * backpack_volume * (volume or 1)
+    sound.volume = 0.75 * weight_volume * backpack_volume * (volume or 1)
     --printf("%s, volume: %s, weight: %s, max_weight: %s", weight_volume, sound.volume, weight, max_weight)
 end
 
@@ -139,6 +146,16 @@ function play_exo_servo_sound(volume, move_state)
         sound:play(db.actor, 0, sound_object.s2d)
         sound.volume = servo_volume * (volume or 1)
         last_exo = not last_exo
+    end
+end
+
+-- SSS rain footsteps hijack
+if ssfx then
+    ssfx_rain_footsteps.RegisterScriptCallback = function(name,func_or_userdata)
+        if name == "actor_on_jump" or name == "actor_on_land" or name == "actor_on_footstep" then
+        else
+            RegisterScriptCallback(name,func_or_userdata)
+        end
     end
 end
 
@@ -195,23 +212,23 @@ function actor_on_first_update()
 end
 
 function get_move_state()
+    local state_bit = level.actor_moving_state()
     local move_state = "walk"
-    local accel_state = IsMoveState('mcAccel')
     local volume = 1
 
-    if IsMoveState('mcSprint') then
+    if bit_and(state_bit, 4096) ~= 0 then
         move_state = "sprint"
         volume = 1.7
 
-    elseif IsMoveState('mcCrouch') then
+    elseif bit_and(state_bit, 16) ~= 0 then
         move_state = "walk"
         volume = 0.5
-        if accel_state then
+        if bit_and(state_bit, 32) ~= 0 then
             move_state = "walk"
             volume = 0
         end
 
-    elseif accel_state then
+    elseif bit_and(state_bit, 32) ~= 0 then
         move_state = "walk"
         volume = 0.3
     end
@@ -294,7 +311,7 @@ available_materials = {
     ["materials\\metal"]               = "metal_solid_", -- Монолитный метал, толстый кусок железа, танк
     ["materials\\metal_pipe"]          = "metal_solid_", -- Металлическая труба
     ["materials\\metal_plate"]         = "metal_plate_", -- Металлическая пластина (толщина 2-5см), Ступеньки
-    ["materials\\sand"]                = "gravel_", -- Песок, насыпь
+    ["materials\\sand"]                = "dirt_", -- Песок, насыпь
     ["materials\\setka_rabica"]        = "metal_solid_", -- Сетка рабица, колючая проволока
     ["materials\\shifer"]              = "slate_", -- Шифер
     ["materials\\stucco"]              = "asphalt_", -- штукатурка
@@ -310,7 +327,7 @@ available_materials = {
     ["materials\\fake_ladders_woods"]  = "dirt_", -- невидимая деревянная лестница
     ["materials\\fake_slide"]          = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
 
-    ["objects\\large_furniture"]       = "wood_", -- Red Forest tunnel planks
+    ["objects\\large_furniture"]       = "wood_plank_", -- Red Forest tunnel planks
     ["objects\\large_metal_trash"]     = "metal_solid_", -- Limansk bridge
     ["objects\\dead_body"]             = "cloth_",
 }
@@ -328,6 +345,17 @@ ladder_materials = {
 ladder_fake_materials = {
     ["materials\\fake_ladders"]        = "metal_", -- невидимая лестница
     ["materials\\fake_ladders_woods"]  = "wood_", -- невидимая деревянная лестница
+}
+
+puddle_materials = {
+    ["default"]                        = true, -- primarily used in Dead City
+    ["materials\\asphalt"]             = true, -- Асфальт
+    ["materials\\bush"]                = true, -- Кусты, крона деревьев, камышы, листья 
+    ["materials\\bush_sux"]            = true, -- Кусты, крона деревьев, камышы, листья сухие
+    ["materials\\concrete"]            = true, -- Монолитный бетон
+    ["materials\\dirt"]                = true, -- Мокрая грязь, болото 
+    ["materials\\earth"]               = true, -- Сухая твердая земля (стандартный материал)
+    ["materials\\grass"]               = true, -- Земля, покрытая травой
 }
 
 function print_dbg(...)
