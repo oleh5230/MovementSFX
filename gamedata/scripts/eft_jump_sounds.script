@@ -17,7 +17,7 @@ local exo_jump = servo_legacy and "exo_legacy\\servo_exo_jump_" or "exo\\servo_e
 local exo_land = servo_legacy and "exo_legacy\\servo_exo_land_" or "exo\\servo_exo_land_"
 
 local utils = oleh_sound_utils
-local gear_rattle = footstep_sounds and footstep_sounds.play_backpack_rattle and footstep_sounds.play_gear_rattle and footstep_sounds.play_cloth_sound
+local gear_rattle = footstep_sounds and footstep_sounds.play_gear_rattle and footstep_sounds.play_cloth_sound
 local wpn_rattle = eft_rattle and eft_rattle.play_sprint_rattle_sound
 local ssfx = ssfx_rain_footsteps and ssfx_rain_footsteps.module_installed
 
@@ -33,14 +33,13 @@ function actor_on_jump()
 
     -- play gear rattle
     if gear_rattle then
-        footstep_sounds.play_backpack_rattle(2, "sprint")
-        footstep_sounds.play_gear_rattle(2, "sprint")
-        footstep_sounds.play_cloth_sound(2, "sprint")
+        footstep_sounds.play_gear_rattle(1, "sprint")
+        footstep_sounds.play_cloth_sound(1, "sprint")
     end
 
     -- play weapon rattle
     if wpn_rattle then
-        eft_rattle.play_sprint_rattle_sound(2, 1)
+        eft_rattle.play_sprint_rattle_sound(1, 1)
     end
 
     -- play puddle splash
@@ -74,15 +73,14 @@ function actor_on_land(landing_speed)
     land_sound.volume = volume * speed_mod
 
     -- play gear rattle
-    if footstep_sounds and footstep_sounds.play_backpack_rattle then
-        footstep_sounds.play_backpack_rattle(4 * speed_mod, "sprint")
-        footstep_sounds.play_gear_rattle(2)
-        footstep_sounds.play_cloth_sound(2)
+    if gear_rattle then
+        footstep_sounds.play_gear_rattle(2 * speed_mod, "sprint")
+        -- footstep_sounds.play_cloth_sound(1, "sprint")
     end
 
     -- play weapon rattle
     if wpn_rattle then
-        eft_rattle.play_sprint_rattle_sound(4 * speed_mod, 1)
+        eft_rattle.play_sprint_rattle_sound(2 * speed_mod, 1)
     end
 
     -- play puddle splash

@@ -49,7 +49,6 @@ function actor_on_footstep(material, power, hud_view, flags)
     -- play extra gear sounds
     play_cloth_sound(volume, move_state)
     play_gear_rattle(volume, move_state)
-    play_backpack_rattle(volume, move_state)
     play_exo_servo_sound(volume, move_state)
 
     if not step_enabled then return end
@@ -100,8 +99,9 @@ end
 
 local last_gr = 0
 local gear = "gear_rattle\\gear_rattle"
+local backpack = "backpack\\backpack_sprint"
 function play_gear_rattle(volume, move_state)
-    if not gear_enabled then return end
+    if not backpack_enabled then return end
 
     local roll = math.random(limit[gear])
     -- if roll == last_gr then
@@ -113,12 +113,15 @@ function play_gear_rattle(volume, move_state)
     sound:play(db.actor, 0, sound_object.s2d)
     sound.volume = gear_volume * 0.5 * (volume or 1)
     --printf("%s, volume: %s", gear .. roll, sound.volume)
+
+    if move_state == "sprint" then
+        play_backpack_rattle(volume, move_state)
+    end
 end
 
 local last_bp = 0
 function play_backpack_rattle(volume, move_state)
     if not backpack_enabled then return end
-    local backpack = "backpack\\backpack_" .. (move_state or "walk")
 
     local roll = math.random(limit[backpack])
     if roll == last_bp then
