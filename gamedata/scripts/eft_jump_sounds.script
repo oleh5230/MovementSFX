@@ -100,7 +100,7 @@ end
 -- in Swamps fake is used primarily for wood bridges
 function actor_on_first_update()
     if level.name() == "k00_marsh" then
-        available_materials["materials\\fake"] = "wood_"
+        available_materials["materials\\fake"] = "wood_plank_"
     else
         available_materials["materials\\fake"] = "dirt_"
     end
@@ -260,11 +260,11 @@ available_materials = {
     ["materials\\shifer"]              = "slate_", -- Шифер
     ["materials\\stucco"]              = "concrete_", -- штукатурка
     ["materials\\tin"]                 = "metal_", --"metal_thin_", -- Жесть, крыша домов
-    ["materials\\tree_trunk"]          = "wood_", -- Дерево (ствол)
+    ["materials\\tree_trunk"]          = "wood_solid_", -- Дерево (ствол)
     ["materials\\water"]               = "water_", -- Вода
     ["materials\\water_radiation"]     = "water_", -- Вода
-    ["materials\\wood"]                = "wood_", -- Деревянная поверхность, деревянный пол, деревянные ступеньки
-    ["materials\\wooden_board"]        = "wood_", -- Деревянная доска (толщина 2-5см), деревянный вагон, ящик
+    ["materials\\wood"]                = "wood_plank_", -- Деревянная поверхность, деревянный пол, деревянные ступеньки
+    ["materials\\wooden_board"]        = "wood_plank_", -- Деревянная доска (толщина 2-5см), деревянный вагон, ящик
     ["materials\\occ"]                 = "dirt_", -- Материал для оклюжен геометрии
     ["materials\\fake"]                = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
     ["materials\\fake_ladders"]        = "dirt_", -- невидимая лестница
