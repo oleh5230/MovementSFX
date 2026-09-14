@@ -40,6 +40,7 @@ limit = {
 function actor_on_footstep(material, power, hud_view, flags)
     -- footstep callback is being sent upon landing (sometimes even twice)
     if utils.land_tg + 200 > time_global() then return end
+    -- printf("%s", material)
 
     --flags.ret_value = false -- uncomment to disable engine footstep sounds
     local move_state, volume = get_move_state()
@@ -67,9 +68,10 @@ end
 local last_fs = 0
 function play_footstep_sound(material, volume, move_state)
 
-    local roll = math.random(limit[move_state])
+    local _limit = (material == "grass_" or material == "dirt_") and move_state == "sprint" and 16 or limit[move_state]
+    local roll = math.random(_limit)
     if roll == last_fs then
-        roll = last_fs % limit[move_state] + 1
+        roll = last_fs % _limit + 1
     end
     last_fs = roll
 
@@ -178,7 +180,7 @@ function play_ladder_sound(material, volume)
 
     local step_snd = sound_object("ladder\\" .. ladder_material .. part .. math.random(limit[part]))
     step_snd:play(db.actor, 0, sound_object.s2d)
-    step_snd.volume = step_volume * 3 * (volume or 1)
+    step_snd.volume = step_volume * 2 * (volume or 1)
     part_count = not part_count
 
     -- play ladder rattle sound effect
@@ -353,9 +355,9 @@ ladder_fake_materials = {
 puddle_materials = {
     ["default"]                        = true, -- primarily used in Dead City
     ["materials\\asphalt"]             = true, -- Асфальт
-    ["materials\\bush"]                = true, -- Кусты, крона деревьев, камышы, листья 
-    ["materials\\bush_sux"]            = true, -- Кусты, крона деревьев, камышы, листья сухие
-    ["materials\\concrete"]            = true, -- Монолитный бетон
+    --["materials\\bush"]                = true, -- Кусты, крона деревьев, камышы, листья 
+    --["materials\\bush_sux"]            = true, -- Кусты, крона деревьев, камышы, листья сухие
+    --["materials\\concrete"]            = true, -- Монолитный бетон
     ["materials\\dirt"]                = true, -- Мокрая грязь, болото 
     ["materials\\earth"]               = true, -- Сухая твердая земля (стандартный материал)
     ["materials\\grass"]               = true, -- Земля, покрытая травой
