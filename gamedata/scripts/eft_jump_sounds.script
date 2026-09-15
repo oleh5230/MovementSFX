@@ -43,7 +43,7 @@ function actor_on_jump()
     end
 
     -- play puddle splash
-    if ssfx and puddle_materials[material] then
+    if ssfx and puddle_materials[material] and level.rain_wetness() > 0 then
         ssfx_rain_footsteps.actor_on_jump()
     end
 
@@ -84,7 +84,7 @@ function actor_on_land(landing_speed)
     end
 
     -- play puddle splash
-    if ssfx and puddle_materials[material] then
+    if ssfx and puddle_materials[material] and level.rain_wetness() > 0 then
         ssfx_rain_footsteps.actor_on_land()
     end
 
