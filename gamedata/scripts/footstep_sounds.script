@@ -216,15 +216,6 @@ function get_ladder_material(offset_x, offset_z)
     return material
 end
 
--- in Swamps fake is used primarily for wood bridges
-function actor_on_first_update()
-    if level.name() == "k00_marsh" then
-        available_materials["materials\\fake"] = "wood_plank_"
-    else
-        available_materials["materials\\fake"] = "dirt_"
-    end
-end
-
 function get_move_state()
     local state_bit = level.actor_moving_state()
     local move_state = "walk"
@@ -336,15 +327,23 @@ available_materials = {
     ["materials\\wood"]                = "wood_plank_", -- Деревянная поверхность, деревянный пол, деревянные ступеньки
     ["materials\\wooden_board"]        = "wood_plank_", -- Деревянная доска (толщина 2-5см), деревянный вагон, ящик
     ["materials\\occ"]                 = "dirt_", -- Материал для оклюжен геометрии
-    ["materials\\fake"]                = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
+    ["materials\\fake"]                = "asphalt_", -- Материал для колижена (нет звука, следов от пуль, теней)
     ["materials\\fake_ladders"]        = "dirt_", -- невидимая лестница
-    ["materials\\fake_ladders_woods"]  = "dirt_", -- невидимая деревянная лестница
+    ["materials\\fake_ladders_woods"]  = "wood_plank_", -- невидимая деревянная лестница
     ["materials\\fake_slide"]          = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
 
     ["objects\\large_furniture"]       = "wood_plank_", -- Red Forest tunnel planks
     ["objects\\large_metal_trash"]     = "metal_solid_", -- Limansk bridge
     ["objects\\dead_body"]             = "cloth_",
 }
+-- in Swamps fake is used primarily for wood bridges
+function actor_on_first_update()
+    if level.name() == "k00_marsh" then
+        available_materials["materials\\fake"] = "wood_plank_"
+    else
+        available_materials["materials\\fake"] = "asphalt_"
+    end
+end
 
 ladder_materials = {
     ["materials\\metal"]               = "metal_", -- Монолитный метал, толстый кусок железа, танк

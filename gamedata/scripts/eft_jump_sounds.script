@@ -19,15 +19,25 @@ local exo_land = servo_legacy and "exo_legacy\\servo_exo_land_" or "exo\\servo_e
 local utils = oleh_sound_utils
 local gear_rattle = footstep_sounds and footstep_sounds.play_gear_rattle and footstep_sounds.play_cloth_sound
 local wpn_rattle = eft_rattle and eft_rattle.play_sprint_rattle_sound
-local ssfx = ssfx_rain_footsteps and ssfx_rain_footsteps.module_installed
 
+local ssfx = ssfx_rain_footsteps and ssfx_rain_footsteps.module_installed
+local Footstep_Jump_Snd = {}
+local Footstep_Land_Snd = {}
+
+local last_jump = 0
 function actor_on_jump()
     if not enabled then return end
+
+    local roll = math.random(3)
+    if roll == last_jump then
+        roll = last_jump % 4
+    end
+    last_jump = roll
 
     local material = get_material(debug)
     local _material = available_materials[material]
     if not _material then return false end
-    jump_sound = sound_object("jump\\jump_" .. _material .. math.random(3))
+    jump_sound = sound_object("jump\\jump_" .. _material .. roll)
     jump_sound:play(db.actor, 0, sound_object.s2d)
     jump_sound.volume = volume
 
@@ -56,6 +66,7 @@ function actor_on_jump()
     end
 end
 
+local last_land = 0
 function actor_on_land(landing_speed)
     if not enabled then return end
 
@@ -64,11 +75,17 @@ function actor_on_land(landing_speed)
     print_dbg("landing_speed: %s", landing_speed)
 	if landing_speed < 2 then return end
 
+    local roll = math.random(3)
+    if roll == last_land then
+        roll = last_land % 4
+    end
+    last_land = roll
+
     local speed_mod = clamp(landing_speed / 5, 0, 4)
     local material = get_material(debug)
     local _material = available_materials[material]
     if not _material then return false end
-    land_sound = sound_object("landing\\landing_" .. _material .. math.random(3))
+    land_sound = sound_object("landing\\landing_" .. _material .. roll)
     land_sound:play(db.actor, 0, sound_object.s2d)
     land_sound.volume = volume * speed_mod
 
@@ -94,15 +111,6 @@ function actor_on_land(landing_speed)
         local sound = sound_object(exo_land .. exo_class)
         sound:play(db.actor, 0, sound_object.s2d)
         sound.volume = 2 * servo_volume * speed_mod
-    end
-end
-
--- in Swamps fake is used primarily for wood bridges
-function actor_on_first_update()
-    if level.name() == "k00_marsh" then
-        available_materials["materials\\fake"] = "wood_plank_"
-    else
-        available_materials["materials\\fake"] = "dirt_"
     end
 end
 
@@ -220,9 +228,21 @@ function on_game_start()
     RegisterScriptCallback("actor_on_land", actor_on_land)
     RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
     RegisterScriptCallback("on_option_change", on_option_change)
+    RegisterScriptCallback("on_game_load", on_game_load)
 	on_option_change()
 
     --RegisterScriptCallback("actor_on_footstep", actor_on_footstep) -- uncomment to disable footsteps sounds
+end
+
+function on_game_load()
+	-- Preload SSS sounds
+	Footstep_Jump_Snd[0] = sound_object([[material\human\step\rain_jump_01]])
+	Footstep_Jump_Snd[1] = sound_object([[material\human\step\rain_jump_02]])
+	Footstep_Jump_Snd[2] = sound_object([[material\human\step\rain_jump_03]])
+
+	Footstep_Land_Snd[0] = sound_object([[material\human\step\rain_land_01]])
+	Footstep_Land_Snd[1] = sound_object([[material\human\step\rain_land_02]])
+	Footstep_Land_Snd[2] = sound_object([[material\human\step\rain_land_03]])
 end
 
 function actor_on_footstep(material, power, hud_view, flags)
@@ -266,11 +286,19 @@ available_materials = {
     ["materials\\wood"]                = "wood_plank_", -- Деревянная поверхность, деревянный пол, деревянные ступеньки
     ["materials\\wooden_board"]        = "wood_plank_", -- Деревянная доска (толщина 2-5см), деревянный вагон, ящик
     ["materials\\occ"]                 = "dirt_", -- Материал для оклюжен геометрии
-    ["materials\\fake"]                = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
+    ["materials\\fake"]                = "concrete_", -- Материал для колижена (нет звука, следов от пуль, теней)
     ["materials\\fake_ladders"]        = "dirt_", -- невидимая лестница
-    ["materials\\fake_ladders_woods"]  = "dirt_", -- невидимая деревянная лестница
+    ["materials\\fake_ladders_woods"]  = "wood_plank_", -- невидимая деревянная лестница
     ["materials\\fake_slide"]          = "dirt_", -- Материал для колижена (нет звука, следов от пуль, теней)
 }
+-- in Swamps fake is used primarily for wood bridges
+function actor_on_first_update()
+    if level.name() == "k00_marsh" then
+        available_materials["materials\\fake"] = "wood_plank_"
+    else
+        available_materials["materials\\fake"] = "concrete_"
+    end
+end
 
 fake_materials = {
     ["materials\\death"]               = true, -- Смертоносная земля (нестандартный материал)
@@ -289,9 +317,9 @@ water_materials = {
 puddle_materials = {
     ["default"]                        = true, -- primarily used in Dead City
     ["materials\\asphalt"]             = true, -- Асфальт
-    ["materials\\bush"]                = true, -- Кусты, крона деревьев, камышы, листья 
-    ["materials\\bush_sux"]            = true, -- Кусты, крона деревьев, камышы, листья сухие
-    ["materials\\concrete"]            = true, -- Монолитный бетон
+    -- ["materials\\bush"]                = true, -- Кусты, крона деревьев, камышы, листья 
+    -- ["materials\\bush_sux"]            = true, -- Кусты, крона деревьев, камышы, листья сухие
+    --["materials\\concrete"]            = true, -- Монолитный бетон
     ["materials\\dirt"]                = true, -- Мокрая грязь, болото 
     ["materials\\earth"]               = true, -- Сухая твердая земля (стандартный материал)
     ["materials\\grass"]               = true, -- Земля, покрытая травой
