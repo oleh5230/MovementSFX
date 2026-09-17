@@ -43,8 +43,8 @@ function actor_on_jump()
     end
 
     -- play puddle splash
-    if ssfx and puddle_materials[material] and level.rain_wetness() > 0 then
-        ssfx_rain_footsteps.actor_on_jump()
+    if ssfx and puddle_materials[material] then
+        ssfx_rain_footsteps.ssfx_JumpLand_Snd(Footstep_Jump_Snd, level.rain_wetness() * level.rain_hemi(), "jump")
     end
 
     -- play exo servo sounds
@@ -84,8 +84,8 @@ function actor_on_land(landing_speed)
     end
 
     -- play puddle splash
-    if ssfx and puddle_materials[material] and level.rain_wetness() > 0 then
-        ssfx_rain_footsteps.actor_on_land()
+    if ssfx and puddle_materials[material] then
+        ssfx_rain_footsteps.ssfx_JumpLand_Snd(Footstep_Land_Snd, level.rain_wetness() * level.rain_hemi(), "land")
     end
 
     -- play exo servo sounds
@@ -214,7 +214,7 @@ end
 
 function on_game_start()
     assert(oleh_sound_utils and oleh_sound_utils.VERSION and oleh_sound_utils.VERSION >= 5, "\n\n"..
-    "MovementSFX: oleh_sound_utils.script is missing or outdated, update MSIG (Miscellaneous Sound Improvements)\nhttps://github.com/oleh5230/MSIG")
+    "MovementSFX: oleh_sound_utils.script is missing or outdated, update MSIG (Miscellaneous Sound Improvements) or move it to higher priority\nhttps://github.com/oleh5230/MSIG")
 
     RegisterScriptCallback("actor_on_jump", actor_on_jump)
     RegisterScriptCallback("actor_on_land", actor_on_land)

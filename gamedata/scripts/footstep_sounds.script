@@ -162,6 +162,15 @@ if ssfx then
             RegisterScriptCallback(name,func_or_userdata)
         end
     end
+
+    ssfx_get_setting = ssfx_001_mcm.ssfx_get_setting
+    ssfx_001_mcm.ssfx_get_setting = function(module_name, var_name, default_script)
+        if var_name == "multi_no_rain" then
+            return 1
+        else
+            return ssfx_get_setting(module_name, var_name, default_script)
+        end
+    end
 end
 
 local raycast_count = 5
@@ -286,7 +295,7 @@ end
 
 function on_game_start()
     assert(oleh_sound_utils and oleh_sound_utils.VERSION and oleh_sound_utils.VERSION >= 6, "\n\n"..
-    "MovementSFX: oleh_sound_utils.script is missing or outdated, update MSIG (Miscellaneous Sound Improvements)\nhttps://github.com/oleh5230/MSIG")
+    "MovementSFX: oleh_sound_utils.script is missing or outdated, update MSIG (Miscellaneous Sound Improvements) or move it to higher priority\nhttps://github.com/oleh5230/MSIG")
 
     RegisterScriptCallback("actor_on_footstep", actor_on_footstep)
     RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
