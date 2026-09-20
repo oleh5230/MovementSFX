@@ -37,6 +37,12 @@ limit = {
     ["foot-0"] = 6,
 }
 
+common_mats = {
+    ["grass_"] = true,
+    ["dirt_"] = true,
+    ["asphalt_"] = true,
+}
+
 function actor_on_footstep(material, power, hud_view, flags)
     -- footstep callback is being sent upon landing (sometimes even twice)
     if utils.land_tg + 200 > time_global() then return end
@@ -68,7 +74,7 @@ end
 local last_fs = 0
 function play_footstep_sound(material, volume, move_state)
 
-    local _limit = (material == "grass_" or material == "dirt_") and move_state == "sprint" and 16 or limit[move_state]
+    local _limit = common_mats[material] and move_state == "sprint" and 16 or limit[move_state]
     local roll = math.random(_limit)
     if roll == last_fs then
         roll = last_fs % _limit + 1
