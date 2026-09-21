@@ -173,6 +173,8 @@ if ssfx then
     ssfx_001_mcm.ssfx_get_setting = function(module_name, var_name, default_script)
         if var_name == "multi_no_rain" then
             return 1
+        elseif var_name == "main_vol" then
+            return 0
         else
             return ssfx_get_setting(module_name, var_name, default_script)
         end
