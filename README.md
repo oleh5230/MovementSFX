@@ -1,11 +1,5 @@
 ## Description
 Extended MovementSFX is a S.T.A.L.K.E.R Anomaly addon aiming to diversify player movement audio.
-Consists of three parts:
-- Crouching/leaning sound effects
-- Crawling sound effects
-- Revised EFT Jump and Land SFX:
-  - Surface material dependant landing sounds
-  - Improved sound quality and variety
 
 ## Installation
 *MovementSFX is included in GAMMA by default (2026.05.08 version), but GAMMA launcher pulls updates only on GAMMA update releases*
@@ -21,6 +15,11 @@ Recommended addons and load order: https://github.com/oleh5230/MSIG/blob/main/MO
 
 ## Dependencies
 [MSIG](https://github.com/oleh5230/MSIG) (version 2026.09.05 or newer)
+
+## Features
+- Footstep sounds
+- Crouching/leaning/crawling sound effects
+- Revised EFT Jump and Land SFX
 
 ## Known issues
 - Crouching/leaning sounds don't work well with GUI elements (especially if crouching is not set to toggle) and obstructing geometry
