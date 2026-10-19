@@ -224,10 +224,10 @@ function on_option_change()
 end
 
 function on_game_start()
-    assert(oleh_sound_utils and oleh_sound_utils.VERSION and oleh_sound_utils.VERSION >= 5, "\n\n"..
-    "MovementSFX: oleh_sound_utils.script is missing or outdated, update MSIG (Miscellaneous Sound Improvements) or move it to higher priority\nhttps://github.com/oleh5230/MSIG")
+assert(oleh_sound_utils and oleh_sound_utils.VERSION and oleh_sound_utils.VERSION >= 5, "\n\n"..
+"MovementSFX: oleh_sound_utils.script is missing or outdated, update MSIG (Miscellaneous Sound Improvements) or move it to higher priority\nhttps://github.com/oleh5230/MSIG")
 
-    RegisterScriptCallback("actor_on_jump", actor_on_jump)
+RegisterScriptCallback("actor_on_jump", actor_on_jump)
     RegisterScriptCallback("actor_on_land", actor_on_land)
     RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
     RegisterScriptCallback("on_option_change", on_option_change)
@@ -279,7 +279,7 @@ available_materials = {
     ["materials\\metal_pipe"]          = "metal_plate_", -- Металлическая труба
     ["materials\\metal_plate"]         = "metal_plate_", -- Металлическая пластина (толщина 2-5см), Ступеньки
     ["materials\\sand"]                = "dirt_", -- Песок, насыпь
-    ["materials\\setka_rabica"]        = "metal_plate_", -- Сетка рабица, колючая проволока
+    ["materials\\setka_rabica"]        = "metal_grate_", -- Сетка рабица, колючая проволока
     ["materials\\shifer"]              = "slate_", -- Шифер
     ["materials\\stucco"]              = "concrete_", -- штукатурка
     ["materials\\tin"]                 = "metal_plate_", -- Жесть, крыша домов
